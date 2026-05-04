@@ -1,0 +1,37 @@
+name: invoice-kali-front-dev
+
+services:
+  web:
+    container_name: invoice-kali-front-dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    env_file:
+      - .env.dev
+    environment:
+      VITE_HOST: 0.0.0.0
+      VITE_PORT: 5173
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:18080}
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "${FRONTEND_HOST_PORT:-15173}:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: on-failure
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - frontend-dev-net
+
+networks:
+  frontend-dev-net:
+    name: frontend-dev-net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.0.0/16

@@ -1,0 +1,37 @@
+import type {
+  IdempotentProtectedRequestOptions,
+  ProtectedRequestOptions,
+  RequestOptions,
+} from "@modules/auth-context/domain/repositories";
+import type { HttpRequestConfig } from "@shared/infrastructure/http";
+
+const toAuthorizationHeader = (accessToken: string): string =>
+  `Bearer ${accessToken}`;
+
+export const toPublicConfig = (
+  options?: RequestOptions,
+): HttpRequestConfig | undefined => {
+  if (!options) {
+    return undefined;
+  }
+
+  return {
+    signal: options.signal,
+  };
+};
+
+export const toProtectedConfig = (
+  options: ProtectedRequestOptions,
+): HttpRequestConfig => ({
+  signal: options.signal,
+  headers: {
+    Authorization: toAuthorizationHeader(options.accessToken),
+  },
+});
+
+export const toIdempotentProtectedConfig = (
+  options: IdempotentProtectedRequestOptions,
+): HttpRequestConfig => ({
+  ...toProtectedConfig(options),
+  idempotencyKey: options.idempotencyKey,
+});

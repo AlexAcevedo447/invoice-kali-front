@@ -1,0 +1,39 @@
+name: invoice-kali-front-prod
+
+services:
+  web:
+    container_name: invoice-kali-front-prod
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/}
+    env_file:
+      - .env
+    ports:
+      - "${FRONTEND_PROD_HOST_PORT:-15080}:80"
+    restart: always
+    cpus: 0.50
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - frontend-prod-net
+
+networks:
+  frontend-prod-net:
+    name: frontend-prod-net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.32.0.0/16

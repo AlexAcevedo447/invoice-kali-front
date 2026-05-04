@@ -1,0 +1,47 @@
+import type { Invoice } from "@modules/invoicing/domain/entities";
+import type {
+  IdempotentRequestOptions,
+  RequestOptions,
+} from "@modules/invoicing/domain/repositories/RequestOptions";
+import type { InvoiceId } from "@modules/invoicing/domain/value-objects";
+
+export interface InvoiceRepository {
+  list(
+    query: { page?: number; pageSize?: number },
+    options?: RequestOptions,
+  ): Promise<Invoice[]>;
+
+  findAll(options?: RequestOptions): Promise<Invoice[]>;
+
+  getById(id: InvoiceId, options?: RequestOptions): Promise<Invoice>;
+
+  findById(id: InvoiceId, options?: RequestOptions): Promise<Invoice | null>;
+
+  create(
+    command: {
+      customerId: string;
+      issueDate?: string;
+      dueDate?: string;
+      items: Array<{
+        itemId: string;
+        quantity: number;
+        unitPrice: number;
+        taxes: Array<{ code: string; kind?: "DEBIT" | "CREDIT"; rate: number }>;
+      }>;
+    },
+    options: IdempotentRequestOptions,
+  ): Promise<Invoice>;
+
+  update(
+    command: {
+      id: InvoiceId;
+      customerId?: string;
+      dueDate?: string;
+    },
+    options: IdempotentRequestOptions,
+  ): Promise<Invoice>;
+
+  pay(id: InvoiceId, options: IdempotentRequestOptions): Promise<Invoice>;
+
+  cancel(id: InvoiceId, options: IdempotentRequestOptions): Promise<Invoice>;
+}
