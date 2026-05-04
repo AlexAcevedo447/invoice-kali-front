@@ -3,6 +3,7 @@ import type {
   EndpointModuleKey,
   EndpointModuleMap,
 } from "./EndpointTypes";
+import { InvoiceEndpoints } from "@modules/invoicing/application/endpoints";
 
 export class EndpointRegistry {
   private factories = new Map<
@@ -90,9 +91,9 @@ const registerEndpointModules = (endpointRegistry: EndpointRegistry): void => {
   );
 
   endpointRegistry.register("invoices" as const, () =>
-    import("@modules/invoicing/application/endpoints").then((m) => ({
-      invoices: m.InvoiceEndpoints,
-    })),
+    Promise.resolve({
+      invoices: InvoiceEndpoints,
+    }),
   );
 };
 

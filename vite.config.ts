@@ -7,10 +7,14 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const authProxyTarget =
     env.API_BASE_URL ||
+    process.env.API_BASE_URL ||
     env.VITE_API_BASE_URL ||
+    process.env.VITE_API_BASE_URL ||
     "http://host.docker.internal:18080";
   const invoicingProxyTarget =
-    env.INVOICING_API_BASE_URL || "http://host.docker.internal:8080";
+    env.INVOICING_API_BASE_URL ||
+    process.env.INVOICING_API_BASE_URL ||
+    "http://host.docker.internal:8080";
 
   return {
     plugins: [react()],
@@ -24,6 +28,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      host: env.VITE_HOST || "0.0.0.0",
+      port: Number(env.VITE_PORT || 5173),
+      strictPort: true,
       proxy: {
         "/api/v1/invoices": {
           target: invoicingProxyTarget,
@@ -40,6 +47,32 @@ export default defineConfig(({ mode }) => {
         "/api": {
           target: authProxyTarget,
           changeOrigin: true,
+        },
+      },
+    },
+    build: {
+      chunkSizeWarningLimit: 500,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes("node_modules")) {
+              return;
+            }
+
+            if (id.includes("primereact") || id.includes("primeicons")) {
+              return "prime-vendor";
+            }
+
+            if (id.includes("react") || id.includes("scheduler")) {
+              return "react-vendor";
+            }
+
+            if (id.includes("axios")) {
+              return "network-vendor";
+            }
+
+            return "vendor";
+          },
         },
       },
     },

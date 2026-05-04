@@ -1,9 +1,11 @@
 import type { FormEvent } from "react";
 import { useRef } from "react";
+import { useEffect } from "react";
 import { z } from "zod";
 import { useFieldArray } from "react-hook-form";
 import { useInvoicingStore } from "@app/state";
 import { FormActions, FormField, SubmitButton, useZodForm } from "@shared/ui";
+import type { Invoice } from "@modules/invoicing/domain/entities";
 
 const taxSchema = z.object({
     code: z.string().min(1, "Code is required"),
@@ -40,12 +42,41 @@ const toIsoOrUndefined = (value?: string): string | undefined => {
     return parsed.toISOString();
 };
 
-export const CreateInvoiceForm = () => {
+const toDateTimeLocalValue = (value?: Date | string | null): string => {
+    if (!value) {
+        return "";
+    }
+
+    const parsed = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        return "";
+    }
+
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getDate()).padStart(2, "0");
+    const hours = String(parsed.getHours()).padStart(2, "0");
+    const minutes = String(parsed.getMinutes()).padStart(2, "0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+interface CreateInvoiceFormProps {
+    invoiceToEdit?: Invoice | null;
+    onSuccess?: () => void;
+}
+
+export const CreateInvoiceForm = ({
+    invoiceToEdit = null,
+    onSuccess,
+}: CreateInvoiceFormProps) => {
     const isSubmittingRef = useRef(false);
     const isLoading = useInvoicingStore((state) => state.isLoading);
     const invoicingError = useInvoicingStore((state) => state.error);
     const createInvoice = useInvoicingStore((state) => state.actions.createInvoice);
+    const updateInvoice = useInvoicingStore((state) => state.actions.updateInvoice);
     const clearError = useInvoicingStore((state) => state.actions.clearError);
+    const isEditMode = Boolean(invoiceToEdit);
 
     const form = useZodForm<CreateInvoiceFormValues>(createInvoiceSchema, {
         defaultValues: {
@@ -68,6 +99,54 @@ export const CreateInvoiceForm = () => {
         name: "items",
     });
 
+    useEffect(() => {
+        if (!invoiceToEdit) {
+            form.reset({
+                customerId: "",
+                issueDate: "",
+                dueDate: "",
+                items: [
+                    {
+                        itemId: "",
+                        quantity: 1,
+                        unitPrice: 0,
+                        taxes: [{ code: "IVA", kind: "DEBIT", rate: 18 }],
+                    },
+                ],
+            });
+            return;
+        }
+
+        form.reset({
+            customerId: invoiceToEdit.customerId,
+            issueDate: toDateTimeLocalValue(invoiceToEdit.issueDate),
+            dueDate: toDateTimeLocalValue(invoiceToEdit.dueDate),
+            items:
+                invoiceToEdit.items.length > 0
+                    ? invoiceToEdit.items.map((item) => ({
+                        itemId: item.itemId,
+                        quantity: item.quantity,
+                        unitPrice: item.unitPrice,
+                        taxes:
+                            item.taxes.length > 0
+                                ? item.taxes.map((tax) => ({
+                                    code: tax.code,
+                                    kind: tax.kind,
+                                    rate: tax.rate,
+                                }))
+                                : [{ code: "IVA", kind: "DEBIT", rate: 18 }],
+                    }))
+                    : [
+                        {
+                            itemId: "",
+                            quantity: 1,
+                            unitPrice: 0,
+                            taxes: [{ code: "IVA", kind: "DEBIT", rate: 18 }],
+                        },
+                    ],
+        });
+    }, [form, invoiceToEdit]);
+
     const onSubmit = form.handleSubmit(async (values: CreateInvoiceFormValues) => {
         if (isSubmittingRef.current) return;
         isSubmittingRef.current = true;
@@ -75,17 +154,27 @@ export const CreateInvoiceForm = () => {
         try {
             clearError();
 
-            await createInvoice({
-                customerId: values.customerId,
-                issueDate: toIsoOrUndefined(values.issueDate),
-                dueDate: toIsoOrUndefined(values.dueDate),
-                items: values.items.map((item) => ({
-                    itemId: item.itemId,
-                    quantity: item.quantity,
-                    unitPrice: item.unitPrice,
-                    taxes: item.taxes,
-                })),
-            });
+            const result = isEditMode && invoiceToEdit
+                ? await updateInvoice({
+                    id: invoiceToEdit.id,
+                    customerId: values.customerId,
+                    dueDate: toIsoOrUndefined(values.dueDate),
+                })
+                : await createInvoice({
+                    customerId: values.customerId,
+                    issueDate: toIsoOrUndefined(values.issueDate),
+                    dueDate: toIsoOrUndefined(values.dueDate),
+                    items: values.items.map((item) => ({
+                        itemId: item.itemId,
+                        quantity: item.quantity,
+                        unitPrice: item.unitPrice,
+                        taxes: item.taxes,
+                    })),
+                });
+
+            if (result) {
+                onSuccess?.();
+            }
         } finally {
             isSubmittingRef.current = false;
         }
@@ -98,7 +187,7 @@ export const CreateInvoiceForm = () => {
 
     return (
         <section className="surface-card p-4 border-round border-1 border-300">
-            <h3 className="mt-0 mb-3">Create Invoice</h3>
+            <h3 className="mt-0 mb-3">{isEditMode ? "Update Invoice" : "Create Invoice"}</h3>
             <form onSubmit={onSafeSubmit} noValidate>
                 <FormField
                     id="customerId"
@@ -126,6 +215,7 @@ export const CreateInvoiceForm = () => {
                                 id="issueDate"
                                 type="datetime-local"
                                 className="p-inputtext p-component w-full"
+                                disabled={isEditMode}
                                 {...form.register("issueDate")}
                             />
                         </FormField>
@@ -152,6 +242,7 @@ export const CreateInvoiceForm = () => {
                     <button
                         type="button"
                         className="p-button p-component p-button-text"
+                        disabled={isEditMode}
                         onClick={() =>
                             itemsArray.append({
                                 itemId: "",
@@ -174,7 +265,7 @@ export const CreateInvoiceForm = () => {
                                     type="button"
                                     className="p-button p-component p-button-text p-button-danger"
                                     onClick={() => itemsArray.remove(index)}
-                                    disabled={itemsArray.fields.length === 1}
+                                    disabled={isEditMode || itemsArray.fields.length === 1}
                                 >
                                     Remove
                                 </button>
@@ -192,6 +283,7 @@ export const CreateInvoiceForm = () => {
                                             id={`items.${index}.itemId`}
                                             type="text"
                                             className="p-inputtext p-component w-full"
+                                            disabled={isEditMode}
                                             {...form.register(`items.${index}.itemId`)}
                                         />
                                     </FormField>
@@ -208,6 +300,7 @@ export const CreateInvoiceForm = () => {
                                             type="number"
                                             min={1}
                                             className="p-inputtext p-component w-full"
+                                            disabled={isEditMode}
                                             {...form.register(`items.${index}.quantity`)}
                                         />
                                     </FormField>
@@ -225,6 +318,7 @@ export const CreateInvoiceForm = () => {
                                             min={0.01}
                                             step={0.01}
                                             className="p-inputtext p-component w-full"
+                                            disabled={isEditMode}
                                             {...form.register(`items.${index}.unitPrice`)}
                                         />
                                     </FormField>
@@ -247,6 +341,7 @@ export const CreateInvoiceForm = () => {
                                             id={`items.${index}.taxes.0.code`}
                                             type="text"
                                             className="p-inputtext p-component w-full"
+                                            disabled={isEditMode}
                                             {...form.register(`items.${index}.taxes.0.code`)}
                                         />
                                     </FormField>
@@ -265,6 +360,7 @@ export const CreateInvoiceForm = () => {
                                         <select
                                             id={`items.${index}.taxes.0.kind`}
                                             className="p-inputtext p-component w-full"
+                                            disabled={isEditMode}
                                             {...form.register(`items.${index}.taxes.0.kind`)}
                                         >
                                             <option value="DEBIT">DEBIT</option>
@@ -289,6 +385,7 @@ export const CreateInvoiceForm = () => {
                                             min={0}
                                             step={0.01}
                                             className="p-inputtext p-component w-full"
+                                            disabled={isEditMode}
                                             {...form.register(`items.${index}.taxes.0.rate`)}
                                         />
                                     </FormField>
@@ -306,8 +403,8 @@ export const CreateInvoiceForm = () => {
 
                 <FormActions>
                     <SubmitButton
-                        label="Create Invoice"
-                        loadingLabel="Creating..."
+                        label={isEditMode ? "Update Invoice" : "Create Invoice"}
+                        loadingLabel={isEditMode ? "Updating..." : "Creating..."}
                         isSubmitting={isLoading}
                     />
                 </FormActions>

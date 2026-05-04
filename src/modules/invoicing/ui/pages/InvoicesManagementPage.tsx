@@ -82,6 +82,7 @@ export const InvoicesManagementPage = () => {
     }));
 
     const selectedInvoice = tableData.find((inv) => inv.id === selectedInvoiceId);
+    const selectedInvoiceEntity = invoices.find((inv) => inv.id === selectedInvoiceId) ?? null;
 
     const handleEdit = (invoiceId: string) => {
         setSelectedInvoiceId(invoiceId);
@@ -190,6 +191,7 @@ export const InvoicesManagementPage = () => {
                 isOpen={isFormModalOpen}
                 onClose={handleCloseFormModal}
                 title={selectedInvoiceId ? "Editar Factura" : "Crear Nueva Factura"}
+                invoiceToEdit={selectedInvoiceEntity}
             />
 
             {selectedInvoice && (
