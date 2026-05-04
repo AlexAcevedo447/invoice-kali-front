@@ -2,6 +2,20 @@
 
 Base frontend con React + Vite + TypeScript, preparada para practicar DDD y arquitectura hexagonal sin complejidad innecesaria.
 
+## Quick Start
+
+```bash
+# Setup inicial (solo una vez)
+npm install
+npm run setup
+
+# Desarrollo local
+npm run dev
+
+# O con Docker
+npm run stack:up
+```
+
 ## Estructura recomendada
 
 ```text
@@ -43,12 +57,13 @@ src/
 
 ## Scripts
 
-1. `npm run dev`
-2. `npm run build`
-3. `npm run lint`
-4. `npm run stack:up`
-5. `npm run stack:down`
-6. `npm run stack:health`
+1. `npm run setup`     - Primer setup (crea .env.local y .env.stack)
+2. `npm run dev`      - Dev local
+3. `npm run build`    - Build production
+4. `npm run lint`     - Lint
+5. `npm run stack:up` - Levanta Docker (auth + invoicing + front)
+6. `npm run stack:down` - Baja Docker
+7. `npm run stack:health` - Valida salud de servicios
 
 ## Levantar Todo En Un Comando
 

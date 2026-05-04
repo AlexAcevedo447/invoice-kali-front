@@ -4,10 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "setup": "./scripts/setup.sh",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "stack:up": "./scripts/dev-stack-up.sh",
+    "stack:down": "./scripts/dev-stack-down.sh",
+    "stack:health": "./scripts/dev-stack-health.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
