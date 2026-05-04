@@ -136,3 +136,42 @@ npm run stack:health
 1. Crear un segundo modulo (`payments`) para practicar bounded contexts.
 2. Introducir React Router con rutas modulares por dominio.
 3. Agregar Zustand en `app/providers` para estado global de UI.
+
+## Guia Frontend Desde Comprimido (Local)
+
+Esta guia es para ejecutar `invoice-kali-front.zip` en modo local (sin Docker en este repo).
+
+1. Descomprime y entra al proyecto:
+
+```bash
+unzip invoice-kali-front.zip
+cd invoice-kali-front
+```
+
+2. Instala dependencias y configura archivos locales:
+
+```bash
+npm install
+npm run setup
+```
+
+3. Levanta los servicios backend en local:
+
+1. Auth en `http://localhost:8082`
+2. Facturacion en `http://localhost:8083`
+
+4. Inicia el frontend:
+
+```bash
+npm run dev
+```
+
+5. Abre en navegador:
+
+1. `http://localhost:5173`
+
+Troubleshooting rapido:
+
+1. `ENOTFOUND base.invalid`: falta `npm run setup` o no existe `.env.local`.
+2. `Port 5173 is already in use`: libera ese puerto o reinicia Vite.
+3. `502 Bad Gateway`: auth o facturacion no estan arriba en los puertos locales.
