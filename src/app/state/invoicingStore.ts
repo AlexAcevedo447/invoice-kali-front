@@ -1,15 +1,13 @@
 import { create } from "zustand";
-import type { ApplicationServices } from "@app/application";
-import type {
-  Invoice,
-  InvoiceItem,
-  InvoiceMetrics,
-} from "@modules/invoicing/domain/entities";
+import type { ApplicationServices } from "../application/Application";
+import type { Invoice } from "../../modules/invoicing/domain/entities/Invoice";
+import type { InvoiceItem } from "../../modules/invoicing/domain/entities/InvoiceItem";
+import type { InvoiceMetrics } from "../../modules/invoicing/domain/entities/InvoiceMetrics";
 import { createIdempotencyKey } from "./createIdempotencyKey";
 
 type InvoicingService = ApplicationServices["invoicing"];
 
-interface InvoicingState {
+export interface InvoicingState {
   invoices: Invoice[];
   invoiceItems: InvoiceItem[];
   selectedInvoice: Invoice | null;

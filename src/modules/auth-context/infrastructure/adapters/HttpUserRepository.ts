@@ -9,8 +9,8 @@ import {
   mapUserApiToDomain,
   type ApiUser,
 } from "@modules/auth-context/infrastructure/mappers/authContextMapper";
-import type { HttpClient } from "@shared/infrastructure/http";
-import { httpCore } from "@shared/infrastructure/http";
+import type { HttpClient } from "../../../../shared/infrastructure/http/HttpClient";
+import { httpCore } from "../../../../shared/infrastructure/http/httpCore";
 import { toIdempotentProtectedConfig, toProtectedConfig } from "./httpConfig";
 
 export class HttpUserRepository implements UserRepository {

@@ -1,13 +1,11 @@
 import { InvoiceEndpoints } from "@modules/invoicing/application/endpoints";
-import {
-  AuthEndpoints,
-  HealthEndpoints,
-  PermissionEndpoints,
-  RbacEndpoints,
-  RoleEndpoints,
-  TenantEndpoints,
-  UserEndpoints,
-} from "@app/api/endpoints";
+import { AuthEndpoints } from "./endpoints/auth";
+import { HealthEndpoints } from "./endpoints/health";
+import { PermissionEndpoints } from "./endpoints/permissions";
+import { RbacEndpoints } from "./endpoints/rbac";
+import { RoleEndpoints } from "./endpoints/roles";
+import { TenantEndpoints } from "./endpoints/tenants";
+import { UserEndpoints } from "./endpoints/users";
 
 export const ApiEndpoints = {
   health: HealthEndpoints,

@@ -1,3 +1,3 @@
-import type { InvoiceMetrics } from "@modules/invoicing/domain/entities";
+import type { InvoiceMetrics } from "../../domain/entities/InvoiceMetrics";
 
 export type InvoiceMetricsResult = InvoiceMetrics;

@@ -1,8 +1,12 @@
 import type { FormEvent } from "react";
 import { useRef } from "react";
 import { z } from "zod";
-import { useAuthSessionStore } from "@app/state";
-import { FormActions, FormField, SubmitButton, useZodForm } from "@shared/ui";
+import { useAuthSessionStore } from "../../../../app/state/authSessionStore";
+import type { AuthSessionState } from "../../../../app/state/authSessionStore";
+import { FormActions } from "../../../../shared/ui/forms/FormActions";
+import { FormField } from "../../../../shared/ui/forms/FormField";
+import { SubmitButton } from "../../../../shared/ui/forms/SubmitButton";
+import { useZodForm } from "../../../../shared/ui/forms/useZodForm";
 
 const loginSchema = z.object({
     tenantId: z.string().min(1, "Tenant ID is required"),
@@ -14,11 +18,11 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export const LoginForm = () => {
     const isSubmittingRef = useRef(false);
-    const isLoading = useAuthSessionStore((state) => state.isLoading);
-    const authError = useAuthSessionStore((state) => state.error);
-    const status = useAuthSessionStore((state) => state.status);
-    const login = useAuthSessionStore((state) => state.actions.login);
-    const clearError = useAuthSessionStore((state) => state.actions.clearError);
+    const isLoading = useAuthSessionStore((state: AuthSessionState) => state.isLoading);
+    const authError = useAuthSessionStore((state: AuthSessionState) => state.error);
+    const status = useAuthSessionStore((state: AuthSessionState) => state.status);
+    const login = useAuthSessionStore((state: AuthSessionState) => state.actions.login);
+    const clearError = useAuthSessionStore((state: AuthSessionState) => state.actions.clearError);
 
     const form = useZodForm<LoginFormValues>(loginSchema, {
         defaultValues: {

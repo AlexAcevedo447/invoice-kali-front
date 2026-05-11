@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { useAuthSessionStore } from "@app/state";
+import { useAuthSessionStore } from "../state/authSessionStore";
+import type { AuthSessionState } from "../state/authSessionStore";
 import { ROUTES } from "./routes";
 import type { AuthSession } from "@modules/auth-context/domain/entities";
 
@@ -9,10 +10,10 @@ interface PermissionRouteProps {
 }
 
 export const PermissionRoute = ({ canAccess, deniedMessage }: PermissionRouteProps) => {
-    const isLoading = useAuthSessionStore((s) => s.isLoading);
-    const status = useAuthSessionStore((s) => s.status);
-    const roles = useAuthSessionStore((s) => s.roles);
-    const permissions = useAuthSessionStore((s) => s.permissions);
+    const isLoading = useAuthSessionStore((s: AuthSessionState) => s.isLoading);
+    const status = useAuthSessionStore((s: AuthSessionState) => s.status);
+    const roles = useAuthSessionStore((s: AuthSessionState) => s.roles);
+    const permissions = useAuthSessionStore((s: AuthSessionState) => s.permissions);
 
     if (isLoading) {
         return <main>Cargando...</main>;

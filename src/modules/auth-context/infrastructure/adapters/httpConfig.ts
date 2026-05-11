@@ -3,7 +3,7 @@ import type {
   ProtectedRequestOptions,
   RequestOptions,
 } from "@modules/auth-context/domain/repositories";
-import type { HttpRequestConfig } from "@shared/infrastructure/http";
+import type { HttpRequestConfig } from "../../../../shared/infrastructure/http/HttpClient";
 
 const toAuthorizationHeader = (accessToken: string): string =>
   `Bearer ${accessToken}`;

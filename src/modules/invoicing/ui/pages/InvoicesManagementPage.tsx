@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
-import { useInvoicingStore } from "@app/state";
+import { useInvoicingStore } from "../../../../app/state/invoicingStore";
+import type { InvoicingState } from "../../../../app/state/invoicingStore";
 import { InvoiceFormModal } from "../components/InvoiceFormModal";
 import { InvoicesTable } from "../components/InvoicesTable";
 import { InvoiceStateChangeDialog } from "../components/InvoiceStateChangeDialog";
@@ -45,7 +46,7 @@ export const InvoicesManagementPage = () => {
             payInvoice,
             cancelInvoice,
         },
-    } = useInvoicingStore();
+    } = useInvoicingStore() as InvoicingState;
 
     useEffect(() => {
         if (hasLoadedRef.current) return;

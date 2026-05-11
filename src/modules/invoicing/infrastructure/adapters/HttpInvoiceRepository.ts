@@ -1,17 +1,17 @@
 import { InvoiceEndpoints } from "@modules/invoicing/application/endpoints";
-import type { Invoice } from "@modules/invoicing/domain/entities";
+import type { Invoice } from "../../domain/entities/Invoice";
 import type {
   IdempotentRequestOptions,
   InvoiceRepository,
   RequestOptions,
-} from "@modules/invoicing/domain/repositories";
-import type { InvoiceId } from "@modules/invoicing/domain/value-objects";
+} from "../../domain/repositories/InvoiceRepository";
+import type { InvoiceId } from "../../domain/value-objects/InvoiceId";
 import {
   mapInvoiceApiToDomain,
   type InvoiceApi,
 } from "@modules/invoicing/infrastructure/mappers/invoiceMapper";
-import type { HttpClient } from "@shared/infrastructure/http";
-import { httpCore } from "@shared/infrastructure/http";
+import type { HttpClient } from "../../../../shared/infrastructure/http/HttpClient";
+import { httpCore } from "../../../../shared/infrastructure/http/httpCore";
 import { toIdempotentConfig, toPublicConfig } from "./httpConfig";
 
 export class HttpInvoiceRepository implements InvoiceRepository {

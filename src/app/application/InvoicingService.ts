@@ -1,16 +1,4 @@
 import {
-  CancelInvoiceUseCase,
-  CreateInvoiceItemUseCase,
-  CreateInvoiceUseCase,
-  DeleteInvoiceItemUseCase,
-  GetInvoiceByIdUseCase,
-  GetInvoiceItemByIdUseCase,
-  GetInvoicingMetricsUseCase,
-  ListInvoiceItemsUseCase,
-  ListInvoicesUseCase,
-  PayInvoiceUseCase,
-  UpdateInvoiceItemUseCase,
-  UpdateInvoiceUseCase,
   type CreateInvoiceCommand,
   type CreateInvoiceItemCommand,
   type DeleteInvoiceItemCommand,
@@ -29,8 +17,10 @@ import {
   type UpdateInvoiceCommand,
   type UpdateInvoiceItemCommand,
 } from "@modules/invoicing/application";
-import type { InvoicingRepositories } from "@modules/invoicing/infrastructure";
 
+import type { InvoicingRepositories } from "@modules/invoicing/infrastructure/createInvoicingHttpRepositories";
+import { toInvoiceId } from "@modules/invoicing/domain/value-objects/InvoiceId";
+import { toInvoiceItemId } from "@modules/invoicing/domain/value-objects/InvoiceItemId";
 export interface InvoicingService {
   invoices: {
     list(
@@ -86,61 +76,51 @@ export interface InvoicingService {
 }
 
 export const createInvoicingService = (
-  repositories: InvoicingRepositories,
+  repos: InvoicingRepositories,
 ): InvoicingService => {
-  const listInvoices = new ListInvoicesUseCase(repositories.invoiceRepository);
-  const getInvoiceById = new GetInvoiceByIdUseCase(
-    repositories.invoiceRepository,
-  );
-  const createInvoice = new CreateInvoiceUseCase(
-    repositories.invoiceRepository,
-  );
-  const updateInvoice = new UpdateInvoiceUseCase(
-    repositories.invoiceRepository,
-  );
-  const payInvoice = new PayInvoiceUseCase(repositories.invoiceRepository);
-  const cancelInvoice = new CancelInvoiceUseCase(
-    repositories.invoiceRepository,
-  );
-
-  const listInvoiceItems = new ListInvoiceItemsUseCase(
-    repositories.invoiceItemRepository,
-  );
-  const getInvoiceItemById = new GetInvoiceItemByIdUseCase(
-    repositories.invoiceItemRepository,
-  );
-  const createInvoiceItem = new CreateInvoiceItemUseCase(
-    repositories.invoiceItemRepository,
-  );
-  const updateInvoiceItem = new UpdateInvoiceItemUseCase(
-    repositories.invoiceItemRepository,
-  );
-  const deleteInvoiceItem = new DeleteInvoiceItemUseCase(
-    repositories.invoiceItemRepository,
-  );
-
-  const getInvoicingMetrics = new GetInvoicingMetricsUseCase(
-    repositories.invoiceMetricsRepository,
-  );
-
   return {
     invoices: {
-      list: (query, options) => listInvoices.execute(query, options),
-      getById: (query, options) => getInvoiceById.execute(query, options),
-      create: (command, options) => createInvoice.execute(command, options),
-      update: (command, options) => updateInvoice.execute(command, options),
-      pay: (command, options) => payInvoice.execute(command, options),
-      cancel: (command, options) => cancelInvoice.execute(command, options),
+      list: (query, options) => repos.invoiceRepository.list(query, options),
+      getById: (query, options) =>
+        repos.invoiceRepository.getById(toInvoiceId(query.id), options),
+      create: (command, options) =>
+        repos.invoiceRepository.create(command, options),
+      update: (command, options) =>
+        repos.invoiceRepository.update(
+          {
+            ...command,
+            id: toInvoiceId(command.id),
+          },
+          options,
+        ),
+      pay: (command, options) =>
+        repos.invoiceRepository.pay(toInvoiceId(command.id), options),
+      cancel: (command, options) =>
+        repos.invoiceRepository.cancel(toInvoiceId(command.id), options),
     },
     invoiceItems: {
-      list: (query, options) => listInvoiceItems.execute(query, options),
-      getById: (query, options) => getInvoiceItemById.execute(query, options),
-      create: (command, options) => createInvoiceItem.execute(command, options),
-      update: (command, options) => updateInvoiceItem.execute(command, options),
-      delete: (command, options) => deleteInvoiceItem.execute(command, options),
+      list: (query, options) =>
+        repos.invoiceItemRepository.list(query, options),
+      getById: (query, options) =>
+        repos.invoiceItemRepository.getById(toInvoiceItemId(query.id), options),
+      create: (command, options) =>
+        repos.invoiceItemRepository.create(command, options),
+      update: (command, options) =>
+        repos.invoiceItemRepository.update(
+          {
+            ...command,
+            id: toInvoiceItemId(command.id),
+          },
+          options,
+        ),
+      delete: (command, options) =>
+        repos.invoiceItemRepository.delete(
+          toInvoiceItemId(command.id),
+          options,
+        ),
     },
     metrics: {
-      get: (options) => getInvoicingMetrics.execute(options),
+      get: (options) => repos.invoiceMetricsRepository.get(options),
     },
   };
 };

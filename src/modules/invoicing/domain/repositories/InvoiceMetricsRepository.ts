@@ -1,5 +1,6 @@
-import type { InvoiceMetrics } from "@modules/invoicing/domain/entities";
-import type { RequestOptions } from "@modules/invoicing/domain/repositories/RequestOptions";
+import type { InvoiceMetrics } from "../entities/InvoiceMetrics";
+import type { RequestOptions } from "./RequestOptions";
+export type { RequestOptions };
 
 export interface InvoiceMetricsRepository {
   get(options?: RequestOptions): Promise<InvoiceMetrics>;

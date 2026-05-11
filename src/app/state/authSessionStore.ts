@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { ApplicationServices } from "@app/application";
+import type { ApplicationServices } from "../application/Application";
 import type { AuthSession } from "@modules/auth-context/domain/entities";
+import { toTenantId } from "../../modules/auth-context/domain/value-objects/TenantId";
 
 type AuthContextService = ApplicationServices["authContext"];
 type SessionPermission = AuthSession["permissions"][number];
@@ -23,7 +24,7 @@ interface LoginPayload {
   password: string;
 }
 
-interface AuthSessionState {
+export interface AuthSessionState {
   hasHydrated: boolean;
   status: "anonymous" | "authenticated";
   accessToken: string | null;
@@ -141,7 +142,10 @@ export const useAuthSessionStore = create<AuthSessionState>()(
           set({ isLoading: true, error: null });
 
           try {
-            const session = await authContextService.auth.login(payload);
+            const session = await authContextService.auth.login({
+              ...payload,
+              tenantId: toTenantId(payload.tenantId),
+            });
 
             set({
               status: "authenticated",

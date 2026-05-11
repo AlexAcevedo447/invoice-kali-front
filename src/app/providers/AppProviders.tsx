@@ -1,9 +1,8 @@
 import type { PropsWithChildren } from 'react'
-import { ApplicationProvider, createDefaultApplication } from '@app/application'
-import {
-    configureAuthSessionStore,
-    configureInvoicingStore,
-} from '@app/state'
+import { ApplicationProvider } from '../application/ApplicationContext';
+import { createDefaultApplication } from '../application/Application';
+import { configureAuthSessionStore } from '../state/authSessionStore';
+import { configureInvoicingStore } from '../state/invoicingStore';
 
 const application = createDefaultApplication()
 

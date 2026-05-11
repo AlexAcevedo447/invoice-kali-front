@@ -1,15 +1,15 @@
 import { InvoiceEndpoints } from "@modules/invoicing/application/endpoints";
-import type { InvoiceMetrics } from "@modules/invoicing/domain/entities";
+import type { InvoiceMetrics } from "../../domain/entities/InvoiceMetrics";
 import type {
   InvoiceMetricsRepository,
   RequestOptions,
-} from "@modules/invoicing/domain/repositories";
+} from "../../domain/repositories/InvoiceMetricsRepository";
 import {
   mapInvoiceMetricsApiToDomain,
   type InvoiceMetricsApi,
 } from "@modules/invoicing/infrastructure/mappers/invoiceMapper";
-import type { HttpClient } from "@shared/infrastructure/http";
-import { httpCore } from "@shared/infrastructure/http";
+import type { HttpClient } from "../../../../shared/infrastructure/http/HttpClient";
+import { httpCore } from "../../../../shared/infrastructure/http/httpCore";
 import { toPublicConfig } from "./httpConfig";
 
 export class HttpInvoiceMetricsRepository implements InvoiceMetricsRepository {

@@ -1,8 +1,6 @@
-import type {
-  InvoiceId,
-  InvoiceItemId,
-  InvoiceTaxId,
-} from "@modules/invoicing/domain/value-objects";
+import type { InvoiceId } from "../value-objects/InvoiceId";
+import type { InvoiceItemId } from "../value-objects/InvoiceItemId";
+import type { InvoiceTaxId } from "../value-objects/InvoiceTaxId";
 
 export type InvoiceTaxKind = "DEBIT" | "CREDIT";
 

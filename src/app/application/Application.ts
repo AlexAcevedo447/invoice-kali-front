@@ -2,16 +2,12 @@ import type {
   EndpointModuleKey,
   EndpointModuleMap,
 } from "@app/api/EndpointTypes";
-import { createEndpointRegistry } from "@app/api";
+import { createEndpointRegistry } from "../api/EndpointRegistry";
 import type { EndpointRegistry } from "@app/api/EndpointRegistry";
-import {
-  createAuthContextHttpRepositories,
-  type AuthContextRepositories,
-} from "@modules/auth-context/infrastructure";
-import {
-  createInvoicingHttpRepositories,
-  type InvoicingRepositories,
-} from "@modules/invoicing/infrastructure";
+import { createAuthContextHttpRepositories } from "@modules/auth-context/infrastructure/createAuthContextHttpRepositories";
+import type { AuthContextRepositories } from "@modules/auth-context/infrastructure/createAuthContextHttpRepositories";
+import { createInvoicingHttpRepositories } from "@modules/invoicing/infrastructure/createInvoicingHttpRepositories";
+import type { InvoicingRepositories } from "@modules/invoicing/infrastructure/createInvoicingHttpRepositories";
 import {
   createAuthContextService,
   type AuthContextService,

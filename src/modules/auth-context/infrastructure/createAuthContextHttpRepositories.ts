@@ -7,8 +7,8 @@ import type {
   TenantRepository,
   UserRepository,
 } from "@modules/auth-context/domain/repositories";
-import type { HttpClient } from "@shared/infrastructure/http";
-import { httpCore } from "@shared/infrastructure/http";
+import type { HttpClient } from "../../../shared/infrastructure/http/HttpClient";
+import { httpCore } from "../../../shared/infrastructure/http/httpCore";
 import {
   HttpAuthRepository,
   HttpHealthRepository,

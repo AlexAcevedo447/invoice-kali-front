@@ -1,7 +1,5 @@
-import type {
-  IdempotentRequestOptions,
-  RequestOptions,
-} from "@modules/invoicing/domain/repositories";
+import type { IdempotentRequestOptions } from "../../domain/repositories/RequestOptions";
+import type { RequestOptions } from "../../domain/repositories/RequestOptions";
 
 export type PublicRequest = RequestOptions;
 export type IdempotentRequest = IdempotentRequestOptions;

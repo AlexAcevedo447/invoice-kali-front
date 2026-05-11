@@ -1,4 +1,4 @@
-import type { Invoice } from "@modules/invoicing/domain/entities";
+import type { Invoice } from "../../domain/entities/Invoice";
 
 export interface ListInvoicesQuery {
   page?: number;

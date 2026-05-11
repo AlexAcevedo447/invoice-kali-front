@@ -1,13 +1,14 @@
 import { Navigate } from "react-router-dom";
-import { useAuthSessionStore } from "@app/state";
+import { useAuthSessionStore } from "../../../../app/state/authSessionStore";
+import type { AuthSessionState } from "../../../../app/state/authSessionStore";
 import { LoginForm } from "../forms/LoginForm";
 import { resolveHomeRoute } from "@app/routing/access";
 
 export const LoginPage = () => {
-    const hasHydrated = useAuthSessionStore((s) => s.hasHydrated);
-    const status = useAuthSessionStore((s) => s.status);
-    const roles = useAuthSessionStore((s) => s.roles);
-    const permissions = useAuthSessionStore((s) => s.permissions);
+    const hasHydrated = useAuthSessionStore((s: AuthSessionState) => s.hasHydrated);
+    const status = useAuthSessionStore((s: AuthSessionState) => s.status);
+    const roles = useAuthSessionStore((s: AuthSessionState) => s.roles);
+    const permissions = useAuthSessionStore((s: AuthSessionState) => s.permissions);
 
     if (!hasHydrated) {
         return <main>Cargando...</main>;

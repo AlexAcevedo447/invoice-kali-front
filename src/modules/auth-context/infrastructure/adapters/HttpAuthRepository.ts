@@ -10,8 +10,8 @@ import {
   type ApiAuthorizationDecision,
   type ApiAuthSessionResponse,
 } from "@modules/auth-context/infrastructure/mappers/authContextMapper";
-import type { HttpClient } from "@shared/infrastructure/http";
-import { httpCore } from "@shared/infrastructure/http";
+import type { HttpClient } from "../../../../shared/infrastructure/http/HttpClient";
+import { httpCore } from "../../../../shared/infrastructure/http/httpCore";
 import { toProtectedConfig, toPublicConfig } from "./httpConfig";
 
 export class HttpAuthRepository implements AuthRepository {

@@ -1,4 +1,4 @@
-import type { InvoiceItem } from "@modules/invoicing/domain/entities";
+import type { InvoiceItem } from "../../domain/entities/InvoiceItem";
 
 export interface ListInvoiceItemsQuery {
   page?: number;

@@ -1,0 +1,1 @@
+Eliminando archivos que no son hooks y el index.

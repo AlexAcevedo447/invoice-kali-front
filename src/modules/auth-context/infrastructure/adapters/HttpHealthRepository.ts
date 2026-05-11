@@ -8,8 +8,8 @@ import {
   mapHealthApiToDomain,
   type ApiHealthResponse,
 } from "@modules/auth-context/infrastructure/mappers/authContextMapper";
-import type { HttpClient } from "@shared/infrastructure/http";
-import { httpCore } from "@shared/infrastructure/http";
+import type { HttpClient } from "../../../../shared/infrastructure/http/HttpClient";
+import { httpCore } from "../../../../shared/infrastructure/http/httpCore";
 import { toPublicConfig } from "./httpConfig";
 
 export class HttpHealthRepository implements HealthRepository {

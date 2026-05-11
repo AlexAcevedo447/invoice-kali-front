@@ -3,9 +3,13 @@ import { useRef } from "react";
 import { useEffect } from "react";
 import { z } from "zod";
 import { useFieldArray } from "react-hook-form";
-import { useInvoicingStore } from "@app/state";
-import { FormActions, FormField, SubmitButton, useZodForm } from "@shared/ui";
-import type { Invoice } from "@modules/invoicing/domain/entities";
+import { useInvoicingStore } from "../../../../app/state/invoicingStore";
+import type { InvoicingState } from "../../../../app/state/invoicingStore";
+import { FormActions } from "../../../../shared/ui/forms/FormActions";
+import { FormField } from "../../../../shared/ui/forms/FormField";
+import { SubmitButton } from "../../../../shared/ui/forms/SubmitButton";
+import { useZodForm } from "../../../../shared/ui/forms/useZodForm";
+import type { Invoice } from "../../../../modules/invoicing/domain/entities/Invoice";
 
 const taxSchema = z.object({
     code: z.string().min(1, "Code is required"),
@@ -71,11 +75,11 @@ export const CreateInvoiceForm = ({
     onSuccess,
 }: CreateInvoiceFormProps) => {
     const isSubmittingRef = useRef(false);
-    const isLoading = useInvoicingStore((state) => state.isLoading);
-    const invoicingError = useInvoicingStore((state) => state.error);
-    const createInvoice = useInvoicingStore((state) => state.actions.createInvoice);
-    const updateInvoice = useInvoicingStore((state) => state.actions.updateInvoice);
-    const clearError = useInvoicingStore((state) => state.actions.clearError);
+    const isLoading = useInvoicingStore((state: InvoicingState) => state.isLoading);
+    const invoicingError = useInvoicingStore((state: InvoicingState) => state.error);
+    const createInvoice = useInvoicingStore((state: InvoicingState) => state.actions.createInvoice);
+    const updateInvoice = useInvoicingStore((state: InvoicingState) => state.actions.updateInvoice);
+    const clearError = useInvoicingStore((state: InvoicingState) => state.actions.clearError);
     const isEditMode = Boolean(invoiceToEdit);
 
     const form = useZodForm<CreateInvoiceFormValues>(createInvoiceSchema, {
@@ -123,13 +127,13 @@ export const CreateInvoiceForm = ({
             dueDate: toDateTimeLocalValue(invoiceToEdit.dueDate),
             items:
                 invoiceToEdit.items.length > 0
-                    ? invoiceToEdit.items.map((item) => ({
+                    ? invoiceToEdit.items.map((item: Invoice["items"][number]) => ({
                         itemId: item.itemId,
                         quantity: item.quantity,
                         unitPrice: item.unitPrice,
                         taxes:
                             item.taxes.length > 0
-                                ? item.taxes.map((tax) => ({
+                                ? item.taxes.map((tax: any) => ({
                                     code: tax.code,
                                     kind: tax.kind,
                                     rate: tax.rate,

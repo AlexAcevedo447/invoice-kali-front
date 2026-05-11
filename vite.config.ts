@@ -31,6 +31,15 @@ export default defineConfig(({ mode }) => {
       host: env.VITE_HOST || "0.0.0.0",
       port: Number(env.VITE_PORT || 5173),
       strictPort: true,
+      allowedHosts: [
+        env.VITE_ALLOWED_HOST || "localhost",
+        ".invoicekali",
+        "host.docker.internal",
+      ],
+      hmr: {
+        overlay: false,
+        host: env.VITE_HMR_HOST || undefined, // Puedes poner aquí tu dominio si lo necesitas
+      },
       proxy: {
         "/api/v1/invoices": {
           target: invoicingProxyTarget,

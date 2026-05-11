@@ -91,10 +91,19 @@ export interface RbacEndpointModule {
 // Invoice endpoints (legacy)
 export interface InvoiceEndpointsType {
   list: string;
+  listPaginated: (page?: number, pageSize?: number) => string;
   getById: (id: string) => string;
   create: string;
   update: (id: string) => string;
   delete: (id: string) => string;
+  pay: (id: string) => string;
+  cancel: (id: string) => string;
+  invoiceItemsList: (page?: number, pageSize?: number) => string;
+  invoiceItemsGetById: (id: string) => string;
+  invoiceItemsCreate: string;
+  invoiceItemsUpdate: (id: string) => string;
+  invoiceItemsDelete: (id: string) => string;
+  metrics: string;
 }
 
 export interface InvoiceEndpointModule {

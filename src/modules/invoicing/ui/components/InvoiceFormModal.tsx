@@ -1,6 +1,6 @@
 import { Dialog } from "primereact/dialog";
 import { CreateInvoiceForm } from "../forms/CreateInvoiceForm";
-import type { Invoice } from "@modules/invoicing/domain/entities";
+import type { Invoice } from "../../domain/entities/Invoice";
 
 interface InvoiceFormModalProps {
     isOpen: boolean;

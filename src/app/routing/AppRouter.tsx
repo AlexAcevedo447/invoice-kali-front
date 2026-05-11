@@ -2,7 +2,8 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { PrivateRoute } from "./PrivateRoute";
 import { PermissionRoute } from "./PermissionRoute";
 import { ROUTES } from "./routes";
-import { useAuthSessionStore } from "@app/state";
+import { useAuthSessionStore } from "../state/authSessionStore";
+import type { AuthSessionState } from "../state/authSessionStore";
 import {
     canAccessAdminModule,
     canAccessInvoicingModule,
@@ -10,10 +11,10 @@ import {
 } from "./access";
 
 const HomeRedirect = () => {
-    const status = useAuthSessionStore((s) => s.status);
-    const isLoading = useAuthSessionStore((s) => s.isLoading);
-    const roles = useAuthSessionStore((s) => s.roles);
-    const permissions = useAuthSessionStore((s) => s.permissions);
+    const status = useAuthSessionStore((s: AuthSessionState) => s.status);
+    const isLoading = useAuthSessionStore((s: AuthSessionState) => s.isLoading);
+    const roles = useAuthSessionStore((s: AuthSessionState) => s.roles);
+    const permissions = useAuthSessionStore((s: AuthSessionState) => s.permissions);
 
     if (isLoading) {
         return <main>Cargando...</main>;
