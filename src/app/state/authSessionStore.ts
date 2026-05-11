@@ -8,16 +8,6 @@ type AuthContextService = ApplicationServices["authContext"];
 type SessionPermission = AuthSession["permissions"][number];
 const AUTH_SESSION_STORAGE_KEY = "auth-session-store";
 
-interface PersistedAuthSessionSlice {
-  status?: "anonymous" | "authenticated";
-  accessToken?: string | null;
-  tenantId?: string | null;
-  userId?: string | null;
-  email?: string | null;
-  roles?: string[];
-  permissions?: SessionPermission[];
-}
-
 interface LoginPayload {
   tenantId: string;
   email: string;
@@ -36,7 +26,7 @@ export interface AuthSessionState {
   isLoading: boolean;
   error: string | null;
   actions: {
-    login(payload: LoginPayload): Promise<void>;
+    login(payload: LoginPayload): Promise<{ success: boolean; error?: string }>;
     logout(): void;
     clearError(): void;
     hasRole(role: string): boolean;
@@ -47,106 +37,36 @@ export interface AuthSessionState {
 
 let authContextService: AuthContextService | null = null;
 
-const getPersistedAuthSessionSlice = (): PersistedAuthSessionSlice => {
-  if (typeof window === "undefined") {
-    return {};
-  }
-
-  try {
-    const raw = window.localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-
-    const parsed = JSON.parse(raw) as { state?: PersistedAuthSessionSlice };
-    return parsed.state ?? {};
-  } catch {
-    return {};
-  }
-};
-
-const normalize = (value: string): string => value.trim().toLowerCase();
-
-const matchesResource = (
-  permissionResource: string,
-  resource: string,
-): boolean => {
-  const current = normalize(permissionResource);
-  const target = normalize(resource);
-
-  if (current === "*") {
-    return true;
-  }
-
-  return (
-    current === target ||
-    current.startsWith(`${target}:`) ||
-    current.startsWith(`${target}.`) ||
-    current.startsWith(`${target}/`)
-  );
-};
-
-const matchesAction = (permissionAction: string, action: string): boolean => {
-  const current = normalize(permissionAction);
-  const target = normalize(action);
-
-  return current === "*" || current === target;
-};
-
-const getErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Unexpected error";
-};
-
 export const configureAuthSessionStore = (
   service: AuthContextService,
 ): void => {
   authContextService = service;
 };
-
-const persistedAuthSession = getPersistedAuthSessionSlice();
-const persistedStatus =
-  persistedAuthSession.status === "authenticated" ||
-  (persistedAuthSession.status == null &&
-    typeof persistedAuthSession.accessToken === "string" &&
-    persistedAuthSession.accessToken.length > 0)
-    ? "authenticated"
-    : "anonymous";
-
 export const useAuthSessionStore = create<AuthSessionState>()(
   persist(
     (set, get) => ({
-      hasHydrated: true,
-      status: persistedStatus,
-      accessToken: persistedAuthSession.accessToken ?? null,
-      tenantId: persistedAuthSession.tenantId ?? null,
-      userId: persistedAuthSession.userId ?? null,
-      email: persistedAuthSession.email ?? null,
-      roles: persistedAuthSession.roles ?? [],
-      permissions: persistedAuthSession.permissions ?? [],
+      hasHydrated: false,
+      status: "anonymous",
+      accessToken: null,
+      tenantId: null,
+      userId: null,
+      email: null,
+      roles: [],
+      permissions: [],
       isLoading: false,
       error: null,
       actions: {
         async login(payload) {
-          if (!authContextService) {
-            throw new Error("AuthContextService is not configured");
-          }
-
-          if (get().isLoading) {
-            return;
-          }
-
+          if (!authContextService)
+            throw new Error("AuthContextService is not configurado");
+          if (get().isLoading)
+            return { success: false, error: "Ya en progreso" };
           set({ isLoading: true, error: null });
-
           try {
             const session = await authContextService.auth.login({
               ...payload,
               tenantId: toTenantId(payload.tenantId),
             });
-
             set({
               status: "authenticated",
               accessToken: session.accessToken,
@@ -158,14 +78,17 @@ export const useAuthSessionStore = create<AuthSessionState>()(
               isLoading: false,
               error: null,
             });
+            return { success: true };
           } catch (error) {
+            const errorMsg =
+              error instanceof Error ? error.message : "Unexpected error";
             set({
               isLoading: false,
-              error: getErrorMessage(error),
+              error: errorMsg,
             });
+            return { success: false, error: errorMsg };
           }
         },
-
         logout() {
           set({
             status: "anonymous",
@@ -179,26 +102,25 @@ export const useAuthSessionStore = create<AuthSessionState>()(
             error: null,
           });
         },
-
         clearError() {
           set({ error: null });
         },
-
         hasRole(role) {
-          const expectedRole = normalize(role);
+          const expectedRole = role.trim().toLowerCase();
           return get().roles.some(
-            (currentRole) => normalize(currentRole) === expectedRole,
+            (currentRole) => currentRole.trim().toLowerCase() === expectedRole,
           );
         },
-
         can(resource, action) {
+          const normalize = (v: string) => v.trim().toLowerCase();
           return get().permissions.some(
             (p) =>
-              matchesResource(p.resource, resource) &&
-              matchesAction(p.action, action),
+              (normalize(p.resource) === normalize(resource) ||
+                normalize(p.resource) === "*") &&
+              (normalize(p.action) === normalize(action) ||
+                normalize(p.action) === "*"),
           );
         },
-
         markHydrated() {
           set({ hasHydrated: true });
         },

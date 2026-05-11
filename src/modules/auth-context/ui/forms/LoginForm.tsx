@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 import { useRef } from "react";
+import { useGlobalToast } from "../../../../shared/ui/GlobalToastContext";
 import { z } from "zod";
 import { useAuthSessionStore } from "../../../../app/state/authSessionStore";
 import type { AuthSessionState } from "../../../../app/state/authSessionStore";
@@ -8,19 +9,19 @@ import { FormField } from "../../../../shared/ui/forms/FormField";
 import { SubmitButton } from "../../../../shared/ui/forms/SubmitButton";
 import { useZodForm } from "../../../../shared/ui/forms/useZodForm";
 
-const loginSchema = z.object({
-    tenantId: z.string().min(1, "Tenant ID is required"),
-    email: z.string().email("Enter a valid email"),
-    password: z.string().min(1, "Password is required"),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
 
 export const LoginForm = () => {
+    const loginSchema = z.object({
+        tenantId: z.string().min(1, "Tenant ID is required"),
+        email: z.string().email("Enter a valid email"),
+        password: z.string().min(1, "Password is required"),
+    });
+
+    type LoginFormValues = z.infer<typeof loginSchema>;
+
     const isSubmittingRef = useRef(false);
+    const { show } = useGlobalToast();
     const isLoading = useAuthSessionStore((state: AuthSessionState) => state.isLoading);
-    const authError = useAuthSessionStore((state: AuthSessionState) => state.error);
-    const status = useAuthSessionStore((state: AuthSessionState) => state.status);
     const login = useAuthSessionStore((state: AuthSessionState) => state.actions.login);
     const clearError = useAuthSessionStore((state: AuthSessionState) => state.actions.clearError);
 
@@ -32,21 +33,36 @@ export const LoginForm = () => {
         },
     });
 
+
     const onSubmit = form.handleSubmit(async (values: LoginFormValues) => {
         if (isSubmittingRef.current) return;
         isSubmittingRef.current = true;
-
         try {
             clearError();
-            await login(values);
+            const result = await login(values);
+            if (result.success) {
+                show({
+                    severity: "success",
+                    summary: "Inicio de sesión exitoso",
+                    detail: "¡Bienvenido!",
+                    life: 3000,
+                });
+            } else if (result.error) {
+                show({
+                    severity: "error",
+                    summary: "Error de inicio de sesión",
+                    detail: result.error,
+                    life: 4000,
+                });
+            }
         } finally {
             isSubmittingRef.current = false;
         }
     });
 
-    const onSafeSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const onSafeSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        void onSubmit();
+        await onSubmit();
     };
 
     return (
@@ -96,16 +112,6 @@ export const LoginForm = () => {
                         {...form.register("password")}
                     />
                 </FormField>
-
-                {authError ? (
-                    <p role="alert" className="text-red-500 m-0 mb-2">
-                        {authError}
-                    </p>
-                ) : null}
-
-                {status === "authenticated" ? (
-                    <p className="text-green-500 m-0 mb-2">Authenticated</p>
-                ) : null}
 
                 <FormActions>
                     <SubmitButton
