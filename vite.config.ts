@@ -16,6 +16,9 @@ export default defineConfig(({ mode }) => {
     process.env.INVOICING_API_BASE_URL ||
     "http://host.docker.internal:8080";
 
+  console.log("Auth API Proxy Target:", authProxyTarget);
+  console.log("Invoicing API Proxy Target:", invoicingProxyTarget);
+
   return {
     plugins: [react()],
     resolve: {
