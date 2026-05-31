@@ -1,10 +1,10 @@
 import { AuthContextEndpoints } from "@modules/auth-context/application/endpoints";
-import type { Tenant } from "@modules/auth-context/domain/entities/Tenant";
+import type { Tenant } from "../../domain/entities/Tenant";
 import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
-  TenantRepository,
-} from "@modules/auth-context/domain/repositories";
+} from "../../domain/repositories/RequestOptions";
+import type { TenantRepository } from "../../domain/repositories/TenantRepository";
 import {
   mapTenantApiToDomain,
   type ApiTenant,

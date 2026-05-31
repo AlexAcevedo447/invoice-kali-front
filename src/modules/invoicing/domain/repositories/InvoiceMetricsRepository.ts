@@ -1,5 +1,5 @@
-import type { InvoiceMetrics } from "../entities/InvoiceMetrics";
-import type { RequestOptions } from "./RequestOptions";
+import type { InvoiceMetrics } from "@modules/invoicing/domain/entities/InvoiceMetrics";
+import type { RequestOptions } from "@modules/invoicing/domain/repositories/RequestOptions";
 export type { RequestOptions };
 
 export interface InvoiceMetricsRepository {

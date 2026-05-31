@@ -1,16 +1,12 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
-import { PrivateRoute } from "./PrivateRoute";
-import { PermissionRoute } from "./PermissionRoute";
+import { Navigate } from "react-router-dom";
 import { ROUTES } from "./routes";
 import { useAuthSessionStore } from "../state/authSessionStore";
 import type { AuthSessionState } from "../state/authSessionStore";
 import {
-    canAccessAdminModule,
-    canAccessInvoicingModule,
     resolveHomeRoute,
 } from "./access";
 
-const HomeRedirect = () => {
+export const HomeRedirect = () => {
     const status = useAuthSessionStore((s: AuthSessionState) => s.status);
     const isLoading = useAuthSessionStore((s: AuthSessionState) => s.isLoading);
     const roles = useAuthSessionStore((s: AuthSessionState) => s.roles);
@@ -31,53 +27,3 @@ const HomeRedirect = () => {
 
     return <main>Tu usuario no tiene permisos asignados para acceder a módulos.</main>;
 };
-
-const moduleRoutes = [
-    {
-        // Requiere rol "admin" o permisos de administración.
-        Component: () => <PermissionRoute canAccess={canAccessAdminModule} />,
-        children: [
-            {
-                path: "admin/*",
-                lazy: () =>
-                    import("@modules/user-admin/ui/router").then((m) => ({
-                        Component: m.UserAdminRouter,
-                    })),
-            },
-        ],
-    },
-    {
-        // Requiere rol "invoicing" o permisos de facturación.
-        Component: () => <PermissionRoute canAccess={canAccessInvoicingModule} />,
-        children: [
-            {
-                path: "invoicing/*",
-                lazy: () =>
-                    import("@modules/invoicing/ui/router").then((m) => ({
-                        Component: m.InvoicingRouter,
-                    })),
-            },
-        ],
-    },
-];
-
-export const router = createBrowserRouter([
-    {
-        path: ROUTES.login,
-        lazy: () =>
-            import("@modules/auth-context/ui/router").then((m) => ({
-                Component: m.LoginPage,
-            })),
-    },
-    {
-        path: "/",
-        Component: PrivateRoute,
-        children: [
-            {
-                index: true,
-                element: <HomeRedirect />,
-            },
-            ...moduleRoutes,
-        ],
-    },
-]);

@@ -1,6 +1,9 @@
 import { useCallback } from "react";
-import { useInvoicingDI } from "../../useInvoicingDI";
-import type { PublicRequest, InvoiceMetricsResult } from "../contracts";
+import { useInvoicingDI } from "@modules/invoicing/useInvoicingDI";
+import type {
+  PublicRequest,
+  InvoiceMetricsResult,
+} from "@modules/invoicing/application/contracts";
 
 export function useGetInvoicingMetrics() {
   const { useCases } = useInvoicingDI();

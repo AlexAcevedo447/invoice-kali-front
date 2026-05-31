@@ -1,12 +1,12 @@
 import { useCallback } from "react";
-import { useInvoicingDI } from "../../useInvoicingDI";
+import { useInvoicingDI } from "@modules/invoicing/useInvoicingDI";
 import type {
   CreateInvoiceItemCommand,
   IdempotentRequest,
   InvoiceItemResult,
   UpdateInvoiceItemCommand,
   DeleteInvoiceItemCommand,
-} from "../contracts";
+} from "@modules/invoicing/application/contracts";
 
 export function useCreateInvoiceItemCommand() {
   const { useCases } = useInvoicingDI();
@@ -38,7 +38,8 @@ export function useDeleteInvoiceItemCommand() {
     (
       command: DeleteInvoiceItemCommand,
       options: IdempotentRequest,
-    ): Promise<void> => useCases.invoiceItems.deleteCommand.delete(command, options),
+    ): Promise<void> =>
+      useCases.invoiceItems.deleteCommand.delete(command, options),
     [useCases],
   );
 }

@@ -1,6 +1,6 @@
-import type { InvoiceId } from "../value-objects/InvoiceId";
-import type { InvoiceItemId } from "../value-objects/InvoiceItemId";
-import type { InvoiceTax } from "./InvoiceTax";
+import type { InvoiceId } from "@modules/invoicing/domain/value-objects/InvoiceId";
+import type { InvoiceItemId } from "@modules/invoicing/domain/value-objects/InvoiceItemId";
+import type { InvoiceTax } from "@modules/invoicing/domain/entities/InvoiceTax";
 
 export interface InvoiceItem {
   id: InvoiceItemId;

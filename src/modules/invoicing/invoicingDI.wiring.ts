@@ -1,8 +1,10 @@
-import { createInvoicingDIContainer } from "./createInvoicingDIContainer";
+import { createInvoicingDIContainer } from "@modules/invoicing/createInvoicingDIContainer";
+import { httpCore } from "@shared/infrastructure/http/httpCore";
+import { createEndpointRegistry } from "@app/api/EndpointRegistry";
 // Factory async para DI container lazy/diferido, solo API moderna (hooks)
 export async function getInvoicingDIContainer() {
   const createInvoicingDIContainerModule =
-    await import("./createInvoicingDIContainer");
+    await import("@modules/invoicing/createInvoicingDIContainer");
   const { createInvoicingDIContainer } = createInvoicingDIContainerModule;
   const [
     mappers,
@@ -11,30 +13,40 @@ export async function getInvoicingDIContainer() {
     { createHttpInvoiceItemRepository },
     { createHttpInvoiceMetricsRepository },
   ] = await Promise.all([
-    import("./infrastructure/mappers/invoiceMapper"),
-    import("./infrastructure/adapters/httpConfig"),
-    import("./infrastructure/adapters/useHttpInvoiceRepository"),
-    import("./infrastructure/adapters/useHttpInvoiceItemRepository"),
-    import("./infrastructure/adapters/useHttpInvoiceMetricsRepository"),
+    import("@modules/invoicing/infrastructure/mappers/invoiceMapper"),
+    import("@modules/invoicing/infrastructure/adapters/httpConfig"),
+    import("@modules/invoicing/infrastructure/adapters/createHttpInvoiceRepository"),
+    import("@modules/invoicing/infrastructure/adapters/createHttpInvoiceItemRepository"),
+    import("@modules/invoicing/infrastructure/adapters/createHttpInvoiceMetricsRepository"),
   ]);
 
   // Repositorios DI: factories modernas
   const repositories = {
-    invoiceRepository: createHttpInvoiceRepository(),
-    invoiceItemRepository: createHttpInvoiceItemRepository(),
-    invoiceMetricsRepository: createHttpInvoiceMetricsRepository(),
+    invoiceRepository: createHttpInvoiceRepository({
+      httpClient: httpCore,
+      endpointRegistry: createEndpointRegistry(),
+    }),
+    invoiceItemRepository: createHttpInvoiceItemRepository({
+      httpClient: httpCore,
+      endpointRegistry: createEndpointRegistry(),
+    }),
+    invoiceMetricsRepository: createHttpInvoiceMetricsRepository({
+      httpClient: httpCore,
+      endpointRegistry: createEndpointRegistry(),
+    }),
   };
 
   // Importar hooks de casos de uso existentes
   const useInvoiceCommandHooks =
-    await import("./application/use-cases/useInvoiceCommandHooks");
+    await import("@modules/invoicing/application/use-cases/useInvoiceCommandHooks");
   const useInvoiceItemQueryHooks =
-    await import("./application/use-cases/useInvoiceItemQueryHooks");
+    await import("@modules/invoicing/application/use-cases/useInvoiceItemQueryHooks");
   const useInvoiceQueryHook =
-    await import("./application/use-cases/useInvoiceQueryHook");
+    await import("@modules/invoicing/application/use-cases/useInvoiceQueryHook");
   const useInvoiceItemCommandHooks =
-    await import("./application/use-cases/useInvoiceItemCommandHooks");
-  const useMetricsHook = await import("./application/use-cases/useMetricsHook");
+    await import("@modules/invoicing/application/use-cases/useInvoiceItemCommandHooks");
+  const useMetricsHook =
+    await import("@modules/invoicing/application/use-cases/useMetricsHook");
 
   const container = createInvoicingDIContainer({
     repositories,

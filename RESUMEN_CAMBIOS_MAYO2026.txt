@@ -1,0 +1,43 @@
+Resumen de cambios recientes (mayo 2026)
+=============================================
+
+1. Enforcement de tipado estricto y eliminación de any
+------------------------------------------------------
+- Se eliminaron todos los usos de `any` en componentes clave, especialmente en `GenericTable.tsx`.
+- Se revisaron y aseguraron los tipos en helpers de forms (`useZodForm.ts`), rutas (`access.ts`), y otros módulos compartidos.
+- Ahora todo el workspace cumple con tipado estricto y sin `any` innecesario.
+
+2. Corrección de imports y barrels
+----------------------------------
+- Se eliminaron barrels y se migraron todos los imports relativos a imports con alias (`@modules`, `@shared`, etc.).
+- Se corrigieron ciclos de dependencias y duplicados en archivos de DI y puertos de invoicing.
+
+3. Refactor de factories y DI
+----------------------------
+- Se refactorizó la inyección de dependencias (DI) en invoicing para usar factories explícitas y tipadas.
+- Se aseguraron imports directos y sin ambigüedad en los factories y wiring de DI.
+
+4. Fallback global y rutas
+--------------------------
+- Se implementó y luego adaptó el fallback global de hidratación para React Router, eliminando props no soportadas.
+- Se limpió el import de `DeferredComponentFallback` tras remover el fallback no soportado.
+
+5. Corrección de errores de build y sintaxis
+--------------------------------------------
+- Se corrigieron errores de sintaxis y tipado en `GenericTable.tsx` y archivos de puertos de invoicing.
+- El build ahora es exitoso y el workspace está limpio de errores de TypeScript y Vite.
+
+6. Validación y enforcement global
+----------------------------------
+- Se validó que no quedan usos de `any` ni imports relativos.
+- Todo el código relevante está modularizado, tipado y con imports claros.
+
+
+Estado actual
+=============
+- Build exitoso, sin errores de tipado ni sintaxis.
+- Código listo para desarrollo o despliegue.
+- Enforcement de buenas prácticas aplicado en todo el workspace.
+
+--
+GitHub Copilot, mayo 2026

@@ -1,10 +1,10 @@
 import { AuthContextEndpoints } from "@modules/auth-context/application/endpoints";
-import type { Role } from "@modules/auth-context/domain/entities/Role";
+import type { Role } from "../../domain/entities/Role";
 import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
-  RoleRepository,
-} from "@modules/auth-context/domain/repositories";
+} from "../../domain/repositories/RequestOptions";
+import type { RoleRepository } from "../../domain/repositories/RoleRepository";
 import {
   mapRoleApiToDomain,
   type ApiRole,

@@ -26,35 +26,35 @@ interface GenericTableProps<T> {
     rowKey: keyof T;
 }
 
-export const GenericTable = <T extends Record<string, any> = Record<string, any>,>(
-    {
-        data,
-        columns,
-        actions,
-        loading = false,
-        emptyMessage = "No hay datos",
-    }: GenericTableProps<T>,
-) => {
+export const GenericTable = <T extends object>({
+    data,
+    columns,
+    actions,
+    loading,
+    emptyMessage,
+    rowKey,
+}: GenericTableProps<T>) => {
     const handleRowAction = (row: T, action: TableAction<T>) => {
         action.onClick(row);
     };
 
     return (
         <DataTable
-            value={data as any}
+            value={data}
             loading={loading}
             emptyMessage={emptyMessage}
             paginator
             rows={10}
             stripedRows
             removableSort
+            dataKey={String(rowKey)}
         >
             {columns.map((col) => (
                 <Column
                     key={col.field}
                     field={col.field}
                     header={col.header}
-                    body={col.body ? (row: any) => col.body?.(row, col.field) : undefined}
+                    body={col.body ? (row: T) => col.body?.(row, col.field) : undefined}
                     sortable={col.sortable ?? false}
                 />
             ))}
@@ -62,7 +62,7 @@ export const GenericTable = <T extends Record<string, any> = Record<string, any>
             {actions && actions.length > 0 && (
                 <Column
                     header="Acciones"
-                    body={(row: any) => (
+                    body={(row: T) => (
                         <div className="flex gap-2">
                             {actions.map((action, idx) => (
                                 <Button
@@ -78,7 +78,6 @@ export const GenericTable = <T extends Record<string, any> = Record<string, any>
                             ))}
                         </div>
                     )}
-                    exportable={false}
                 />
             )}
         </DataTable>

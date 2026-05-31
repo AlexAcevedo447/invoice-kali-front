@@ -1,10 +1,10 @@
 import { AuthContextEndpoints } from "@modules/auth-context/application/endpoints";
-import type { Permission } from "@modules/auth-context/domain/entities/Permission";
+import type { Permission } from "../../domain/entities/Permission";
 import type {
   IdempotentProtectedRequestOptions,
-  PermissionRepository,
   ProtectedRequestOptions,
-} from "@modules/auth-context/domain/repositories";
+} from "../../domain/repositories/RequestOptions";
+import type { PermissionRepository } from "../../domain/repositories/PermissionRepository";
 import {
   mapPermissionApiToDomain,
   type ApiPermission,

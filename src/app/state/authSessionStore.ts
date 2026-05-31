@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { ApplicationServices } from "../application/Application";
-import type { AuthSession } from "@modules/auth-context/domain/entities";
+import type { AuthSession } from "../../modules/auth-context/domain/entities/AuthSession";
 import { toTenantId } from "../../modules/auth-context/domain/value-objects/TenantId";
 
 type AuthContextService = ApplicationServices["authContext"];

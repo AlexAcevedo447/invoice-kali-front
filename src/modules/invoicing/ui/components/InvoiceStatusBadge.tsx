@@ -1,5 +1,5 @@
 import { Tag } from "primereact/tag";
-import type { InvoiceStatus } from "../constants/invoiceStatus";
+import type { InvoiceStatus } from "@modules/invoicing/ui/constants/invoiceStatus";
 import { getStatusInfo } from "../constants/invoiceStatus";
 
 interface InvoiceStatusBadgeProps {

@@ -1,18 +1,24 @@
-import type { InvoiceMetricsRepository } from "../../domain/repositories/InvoiceMetricsRepository";
 import type { HttpClient } from "@shared/infrastructure/http/HttpClient";
-import { httpCore } from "@shared/infrastructure/http/httpCore";
-import { endpointRegistry } from "src/app/api/EndpointRegistry";
-import { toPublicConfig } from "./httpConfig";
-import { mapInvoiceMetricsApiToDomain } from "../mappers/invoiceMapper";
+import type { EndpointRegistryContext } from "@app/api/EndpointRegistry";
+import { resolveEndpoint } from "@app/api/EndpointRegistry";
+import type { InvoiceMetricsRepository } from "@modules/invoicing/domain/repositories/InvoiceMetricsRepository";
+import { toPublicConfig } from "@modules/invoicing/infrastructure/adapters/httpConfig";
+import { mapInvoiceMetricsApiToDomain } from "@modules/invoicing/infrastructure/mappers/invoiceMapper";
 
 type InvoiceMetricsApi = import("../mappers/invoiceMapper").InvoiceMetricsApi;
 
-export function createHttpInvoiceMetricsRepository(
-  httpClient: HttpClient = httpCore,
-): InvoiceMetricsRepository {
+export interface CreateHttpInvoiceMetricsRepositoryDeps {
+  httpClient: HttpClient;
+  endpointRegistry: EndpointRegistryContext;
+}
+
+export function useHttpInvoiceMetricsRepository({
+  httpClient,
+  endpointRegistry,
+}: CreateHttpInvoiceMetricsRepositoryDeps): InvoiceMetricsRepository {
   return {
     async get(options) {
-      const { invoices } = await endpointRegistry.resolve("invoices");
+      const { invoices } = await resolveEndpoint(endpointRegistry, "invoices");
       const response = await httpClient.get<InvoiceMetricsApi>(
         invoices.metrics,
         toPublicConfig(options),

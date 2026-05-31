@@ -1,9 +1,9 @@
 import { AuthContextEndpoints } from "@modules/auth-context/application/endpoints";
+import type { AuthRepository } from "../../domain/repositories/AuthRepository";
 import type {
-  AuthRepository,
   ProtectedRequestOptions,
   RequestOptions,
-} from "@modules/auth-context/domain/repositories";
+} from "../../domain/repositories/RequestOptions";
 import {
   mapAuthorizationApiToDomain,
   mapAuthSessionApiToDomain,

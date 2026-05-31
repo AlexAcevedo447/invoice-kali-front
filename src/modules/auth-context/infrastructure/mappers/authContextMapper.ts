@@ -1,18 +1,14 @@
-import type {
-  AuthSession,
-  AuthorizationDecision,
-  Permission,
-  Role,
-  ServiceHealth,
-  Tenant,
-  User,
-} from "@modules/auth-context/domain/entities";
-import {
-  toPermissionId,
-  toRoleId,
-  toTenantId,
-  toUserId,
-} from "@modules/auth-context/domain/value-objects";
+import type { AuthSession } from "../../domain/entities/AuthSession";
+import type { AuthorizationDecision } from "../../domain/entities/AuthorizationDecision";
+import type { Permission } from "../../domain/entities/Permission";
+import type { Role } from "../../domain/entities/Role";
+import type { ServiceHealth } from "../../domain/entities/ServiceHealth";
+import type { Tenant } from "../../domain/entities/Tenant";
+import type { User } from "../../domain/entities/User";
+import { toPermissionId } from "../../domain/value-objects/PermissionId";
+import { toRoleId } from "../../domain/value-objects/RoleId";
+import { toTenantId } from "../../domain/value-objects/TenantId";
+import { toUserId } from "../../domain/value-objects/UserId";
 export interface ApiHealthResponse {
   service: string;
   status: string;

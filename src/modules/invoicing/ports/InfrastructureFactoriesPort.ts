@@ -3,15 +3,15 @@ import type {
   InvoiceItemApi,
   InvoiceTaxApi,
   InvoiceMetricsApi,
-} from "../infrastructure/mappers/invoiceMapper";
-import type { Invoice } from "../domain/entities/Invoice";
-import type { InvoiceItem } from "../domain/entities/InvoiceItem";
-import type { InvoiceTax } from "../domain/entities/InvoiceTax";
-import type { InvoiceMetrics } from "../domain/entities/InvoiceMetrics";
+} from "@modules/invoicing/infrastructure/mappers/invoiceMapper";
+import type { Invoice } from "@modules/invoicing/domain/entities/Invoice";
+import type { InvoiceItem } from "@modules/invoicing/domain/entities/InvoiceItem";
+import type { InvoiceTax } from "@modules/invoicing/domain/entities/InvoiceTax";
+import type { InvoiceMetrics } from "@modules/invoicing/domain/entities/InvoiceMetrics";
 import type {
   RequestOptions,
   IdempotentRequestOptions,
-} from "../domain/repositories/RequestOptions";
+} from "@modules/invoicing/domain/repositories/RequestOptions";
 import type { HttpRequestConfig } from "@shared/application/http/HttpClient";
 
 export interface InvoiceMapperPort {

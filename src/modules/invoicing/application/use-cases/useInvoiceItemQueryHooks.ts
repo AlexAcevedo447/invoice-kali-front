@@ -1,11 +1,11 @@
 import { useCallback } from "react";
-import { useInvoicingDI } from "../../useInvoicingDI";
+import { useInvoicingDI } from "@modules/invoicing/useInvoicingDI";
 import type {
   ListInvoiceItemsQuery,
   PublicRequest,
   InvoiceItemListResult,
   InvoiceItemResult,
-} from "../contracts";
+} from "@modules/invoicing/application/contracts";
 
 export function useListInvoiceItems() {
   const { useCases } = useInvoicingDI();

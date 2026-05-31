@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { InvoicingDIContainer } from "./InvoicingDIProvider";
-import { getInvoicingDIContainer } from "./invoicingDI.wiring";
+import type { InvoicingDIContainer } from "@modules/invoicing/ports/InvoicingDIContainer";
+import { getInvoicingDIContainer } from "@modules/invoicing/invoicingDI.wiring";
 
 export function useInvoicingDIContainer() {
   const [state, setState] = useState<{

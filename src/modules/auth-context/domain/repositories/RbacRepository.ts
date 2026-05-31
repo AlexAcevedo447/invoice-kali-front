@@ -1,14 +1,13 @@
-import type { Permission, Role } from "@modules/auth-context/domain/entities";
+import type { Permission } from "../entities/Permission";
+import type { Role } from "../entities/Role";
 import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
 } from "@modules/auth-context/domain/repositories/RequestOptions";
-import type {
-  PermissionId,
-  RoleId,
-  TenantId,
-  UserId,
-} from "@modules/auth-context/domain/value-objects";
+import type { TenantId } from "../value-objects/TenantId";
+import type { UserId } from "../value-objects/UserId";
+import type { RoleId } from "../value-objects/RoleId";
+import type { PermissionId } from "../value-objects/PermissionId";
 
 export interface RbacRepository {
   assignUserRole(

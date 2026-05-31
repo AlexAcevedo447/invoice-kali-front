@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { DeferredComponentFallback } from "@shared/ui/fallbacks/DeferredComponentFallback";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 const UsersPage = lazy(() => import("./pages/UsersPage").then((m) => ({ default: m.UsersPage })));
@@ -7,7 +8,7 @@ const RolesPage = lazy(() => import("./pages/RolesPage").then((m) => ({ default:
 const PermissionsPage = lazy(() => import("./pages/PermissionsPage").then((m) => ({ default: m.PermissionsPage })));
 
 export const UserAdminRouter = () => (
-    <Suspense fallback={null}>
+    <Suspense fallback={<DeferredComponentFallback />}>
         <Routes>
             <Route index element={<Navigate to="users" replace />} />
             <Route path="users" element={<UsersPage />} />

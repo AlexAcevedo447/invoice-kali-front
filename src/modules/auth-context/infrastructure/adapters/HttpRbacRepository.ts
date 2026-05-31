@@ -1,10 +1,11 @@
 import { AuthContextEndpoints } from "@modules/auth-context/application/endpoints";
-import type { Permission, Role } from "@modules/auth-context/domain/entities";
+import type { Permission } from "../../domain/entities/Permission";
+import type { Role } from "../../domain/entities/Role";
 import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
-  RbacRepository,
-} from "@modules/auth-context/domain/repositories";
+} from "../../domain/repositories/RequestOptions";
+import type { RbacRepository } from "../../domain/repositories/RbacRepository";
 import {
   mapPermissionApiToDomain,
   mapRoleApiToDomain,

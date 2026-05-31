@@ -1,5 +1,5 @@
 import type { InvoiceId } from "@modules/invoicing/domain/value-objects/InvoiceId";
-import type { InvoiceItem } from "./InvoiceItem";
+import type { InvoiceItem } from "@modules/invoicing/domain/entities/InvoiceItem";
 
 export type InvoiceStatus = "PENDING" | "PAID" | "CANCELED";
 

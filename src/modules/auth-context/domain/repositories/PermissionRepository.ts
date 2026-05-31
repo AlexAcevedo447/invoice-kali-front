@@ -3,10 +3,8 @@ import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
 } from "@modules/auth-context/domain/repositories/RequestOptions";
-import type {
-  PermissionId,
-  TenantId,
-} from "@modules/auth-context/domain/value-objects";
+import type { PermissionId } from "../value-objects/PermissionId";
+import type { TenantId } from "../value-objects/TenantId";
 
 export interface PermissionRepository {
   create(
@@ -18,11 +16,6 @@ export interface PermissionRepository {
     query: { tenantId: TenantId },
     options: ProtectedRequestOptions,
   ): Promise<Permission[]>;
-
-  getById(
-    query: { permissionId: PermissionId },
-    options: ProtectedRequestOptions,
-  ): Promise<Permission>;
 
   update(
     command: {

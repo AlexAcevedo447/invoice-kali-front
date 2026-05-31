@@ -1,10 +1,10 @@
 // Factory para crear el contenedor DI de invoicing usando solo ports y wiring explícito
-import type { InvoicingDIContainer } from "./InvoicingDIProvider";
-import type { InvoicingRepositoriesPort } from "./ports/InvoicingRepositoriesPort";
+import type { InvoicingDIContainer } from "@modules/invoicing/ports/InvoicingDIContainer";
+import type { InvoicingRepositoriesPort } from "@modules/invoicing/ports/InvoicingRepositoriesPort";
 import type {
   InvoiceMapperPort,
   HttpConfigPort,
-} from "./ports/InfrastructureFactoriesPort";
+} from "@modules/invoicing/ports/InfrastructureFactoriesPort";
 import type {
   ListInvoicesPort,
   GetInvoiceByIdPort,
@@ -12,16 +12,16 @@ import type {
   UpdateInvoicePort,
   PayInvoicePort,
   CancelInvoicePort,
-} from "./ports/InvoiceUseCasesPort";
+} from "@modules/invoicing/ports/InvoiceUseCasesPort";
 import type {
   ListInvoiceItemsPort,
   GetInvoiceItemByIdPort,
   CreateInvoiceItemPort,
   UpdateInvoiceItemPort,
   DeleteInvoiceItemPort,
-} from "./ports/InvoiceItemUseCasesPort";
-import type { GetInvoicingMetricsPort } from "./ports/InvoiceMetricsPort";
-import type { InvoiceQueryPort } from "./ports/InvoiceQueryPort";
+} from "@modules/invoicing/ports/InvoiceItemUseCasesPort";
+import type { GetInvoicingMetricsPort } from "@modules/invoicing/ports/InvoiceMetricsPort";
+import type { InvoiceQueryPort } from "@modules/invoicing/ports/InvoiceQueryPort";
 
 // Recibe implementaciones concretas por port y arma el contenedor DI
 function createInvoicingDIContainer({

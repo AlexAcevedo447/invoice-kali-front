@@ -7,7 +7,7 @@ import type {
   ListInvoiceItemsQuery,
   PublicRequest,
   UpdateInvoiceItemCommand,
-} from "../application/contracts";
+} from "@modules/invoicing/application/contracts";
 
 export interface ListInvoiceItemsPort {
   list(

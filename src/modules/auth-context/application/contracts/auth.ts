@@ -1,7 +1,5 @@
-import type {
-  AuthorizationDecision,
-  AuthSession,
-} from "@modules/auth-context/domain/entities";
+import type { AuthSession } from "../../domain/entities/AuthSession";
+import type { AuthorizationDecision } from "../../domain/entities/AuthorizationDecision";
 
 export interface LoginCommand {
   tenantId: string;

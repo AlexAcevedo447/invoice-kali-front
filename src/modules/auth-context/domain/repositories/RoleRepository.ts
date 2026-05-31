@@ -3,10 +3,8 @@ import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
 } from "@modules/auth-context/domain/repositories/RequestOptions";
-import type {
-  RoleId,
-  TenantId,
-} from "@modules/auth-context/domain/value-objects";
+import type { RoleId } from "../value-objects/RoleId";
+import type { TenantId } from "../value-objects/TenantId";
 
 export interface RoleRepository {
   create(

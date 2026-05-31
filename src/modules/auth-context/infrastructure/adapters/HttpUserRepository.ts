@@ -1,10 +1,10 @@
 import { AuthContextEndpoints } from "@modules/auth-context/application/endpoints";
-import type { User } from "@modules/auth-context/domain/entities/User";
+import type { User } from "../../domain/entities/User";
 import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
-  UserRepository,
-} from "@modules/auth-context/domain/repositories";
+} from "../../domain/repositories/RequestOptions";
+import type { UserRepository } from "../../domain/repositories/UserRepository";
 import {
   mapUserApiToDomain,
   type ApiUser,

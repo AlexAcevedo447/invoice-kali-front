@@ -1,8 +1,8 @@
 import type {
   IdempotentRequestOptions,
   RequestOptions,
-} from "../../domain/repositories/RequestOptions";
-import type { HttpRequestConfig } from "../../../../shared/infrastructure/http/HttpClient";
+} from "@modules/invoicing/domain/repositories/RequestOptions";
+import type { HttpRequestConfig } from "@shared/infrastructure/http/HttpClient";
 
 export const toPublicConfig = (
   options?: RequestOptions,

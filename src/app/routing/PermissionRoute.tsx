@@ -2,7 +2,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuthSessionStore } from "../state/authSessionStore";
 import type { AuthSessionState } from "../state/authSessionStore";
 import { ROUTES } from "./routes";
-import type { AuthSession } from "@modules/auth-context/domain/entities";
+import type { AuthSession } from "../../modules/auth-context/domain/entities/AuthSession";
 
 interface PermissionRouteProps {
     canAccess: (roles: string[], permissions: AuthSession["permissions"]) => boolean;

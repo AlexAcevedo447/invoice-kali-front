@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
-import { useInvoicingStore } from "../../../../app/state/invoicingStore";
-import type { InvoicingState } from "../../../../app/state/invoicingStore";
-import { InvoiceFormModal } from "../components/InvoiceFormModal";
-import { InvoicesTable } from "../components/InvoicesTable";
-import { InvoiceStateChangeDialog } from "../components/InvoiceStateChangeDialog";
-import { InvoiceDeleteConfirmDialog } from "../components/InvoiceDeleteConfirmDialog";
-import type { InvoiceStatus } from "../constants/invoiceStatus";
+import { useInvoicingStore } from "@app/state/invoicingStore";
+import type { InvoicingState } from "@app/state/invoicingStore";
+import { InvoiceFormModal } from "@modules/invoicing/ui/components/InvoiceFormModal";
+import { InvoicesTable } from "@modules/invoicing/ui/components/InvoicesTable";
+import { InvoiceStateChangeDialog } from "@modules/invoicing/ui/components/InvoiceStateChangeDialog";
+import { InvoiceDeleteConfirmDialog } from "@modules/invoicing/ui/components/InvoiceDeleteConfirmDialog";
+import type { InvoiceStatus } from "@modules/invoicing/ui/constants/invoiceStatus";
 
 interface InvoiceTableData {
     id: string;

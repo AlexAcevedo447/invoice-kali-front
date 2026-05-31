@@ -1,9 +1,7 @@
 import { AuthContextEndpoints } from "@modules/auth-context/application/endpoints";
-import type { ServiceHealth } from "@modules/auth-context/domain/entities";
-import type {
-  HealthRepository,
-  RequestOptions,
-} from "@modules/auth-context/domain/repositories";
+import type { ServiceHealth } from "../../domain/entities/ServiceHealth";
+import type { HealthRepository } from "../../domain/repositories/HealthRepository";
+import type { RequestOptions } from "../../domain/repositories/RequestOptions";
 import {
   mapHealthApiToDomain,
   type ApiHealthResponse,

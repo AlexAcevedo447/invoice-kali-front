@@ -1,4 +1,4 @@
-import type { AuthSession } from "@modules/auth-context/domain/entities";
+import type { AuthSession } from "../../modules/auth-context/domain/entities/AuthSession";
 import { ROUTES } from "./routes";
 
 type SessionPermission = AuthSession["permissions"][number];

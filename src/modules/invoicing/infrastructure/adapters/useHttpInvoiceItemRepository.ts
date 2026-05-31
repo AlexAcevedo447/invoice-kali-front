@@ -1,18 +1,27 @@
 import type { InvoiceItemRepository } from "@modules/invoicing/domain/repositories/InvoiceItemRepository";
 import type { HttpClient } from "@shared/infrastructure/http/HttpClient";
-import { httpCore } from "@shared/infrastructure/http/httpCore";
-import { endpointRegistry } from "src/app/api/EndpointRegistry";
-import { toIdempotentConfig, toPublicConfig } from "../adapters/httpConfig";
-import { mapInvoiceItemApiToDomain } from "../mappers/invoiceMapper";
+import type { EndpointRegistryContext } from "@app/api/EndpointRegistry";
+import { resolveEndpoint } from "@app/api/EndpointRegistry";
+import {
+  toIdempotentConfig,
+  toPublicConfig,
+} from "@modules/invoicing/infrastructure/adapters/httpConfig";
+import { mapInvoiceItemApiToDomain } from "@modules/invoicing/infrastructure/mappers/invoiceMapper";
 
 type InvoiceItemApi = import("../mappers/invoiceMapper").InvoiceItemApi;
 
-export function createHttpInvoiceItemRepository(
-  httpClient: HttpClient = httpCore,
-): InvoiceItemRepository {
+export interface CreateHttpInvoiceItemRepositoryDeps {
+  httpClient: HttpClient;
+  endpointRegistry: EndpointRegistryContext;
+}
+
+export function useHttpInvoiceItemRepository({
+  httpClient,
+  endpointRegistry,
+}: CreateHttpInvoiceItemRepositoryDeps): InvoiceItemRepository {
   return {
     async list(query, options) {
-      const { invoices } = await endpointRegistry.resolve("invoices");
+      const { invoices } = await resolveEndpoint(endpointRegistry, "invoices");
       const response = await httpClient.get<InvoiceItemApi[]>(
         invoices.invoiceItemsList(query.page ?? 1, query.pageSize ?? 20),
         toPublicConfig(options),
@@ -20,7 +29,7 @@ export function createHttpInvoiceItemRepository(
       return response.map(mapInvoiceItemApiToDomain);
     },
     async getById(id, options) {
-      const { invoices } = await endpointRegistry.resolve("invoices");
+      const { invoices } = await resolveEndpoint(endpointRegistry, "invoices");
       const response = await httpClient.get<InvoiceItemApi>(
         invoices.invoiceItemsGetById(id),
         toPublicConfig(options),
@@ -28,7 +37,7 @@ export function createHttpInvoiceItemRepository(
       return mapInvoiceItemApiToDomain(response);
     },
     async create(command, options) {
-      const { invoices } = await endpointRegistry.resolve("invoices");
+      const { invoices } = await resolveEndpoint(endpointRegistry, "invoices");
       const response = await httpClient.post<
         InvoiceItemApi,
         {
@@ -56,7 +65,7 @@ export function createHttpInvoiceItemRepository(
       return mapInvoiceItemApiToDomain(response);
     },
     async update(command, options) {
-      const { invoices } = await endpointRegistry.resolve("invoices");
+      const { invoices } = await resolveEndpoint(endpointRegistry, "invoices");
       const response = await httpClient.put<
         InvoiceItemApi,
         {
@@ -80,7 +89,7 @@ export function createHttpInvoiceItemRepository(
       return mapInvoiceItemApiToDomain(response);
     },
     async delete(id, options) {
-      const { invoices } = await endpointRegistry.resolve("invoices");
+      const { invoices } = await resolveEndpoint(endpointRegistry, "invoices");
       await httpClient.delete<void>(
         invoices.invoiceItemsDelete(id),
         toIdempotentConfig(options),

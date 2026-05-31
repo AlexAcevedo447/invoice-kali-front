@@ -1,10 +1,10 @@
-import type { Invoice } from "../../domain/entities/Invoice";
-import type { InvoiceItem } from "../../domain/entities/InvoiceItem";
-import type { InvoiceMetrics } from "../../domain/entities/InvoiceMetrics";
-import type { InvoiceTax } from "../../domain/entities/InvoiceTax";
-import { toInvoiceId } from "../../domain/value-objects/InvoiceId";
-import { toInvoiceItemId } from "../../domain/value-objects/InvoiceItemId";
-import { toInvoiceTaxId } from "../../domain/value-objects/InvoiceTaxId";
+import type { Invoice } from "@modules/invoicing/domain/entities/Invoice";
+import type { InvoiceItem } from "@modules/invoicing/domain/entities/InvoiceItem";
+import type { InvoiceMetrics } from "@modules/invoicing/domain/entities/InvoiceMetrics";
+import type { InvoiceTax } from "@modules/invoicing/domain/entities/InvoiceTax";
+import { toInvoiceId } from "@modules/invoicing/domain/value-objects/InvoiceId";
+import { toInvoiceItemId } from "@modules/invoicing/domain/value-objects/InvoiceItemId";
+import { toInvoiceTaxId } from "@modules/invoicing/domain/value-objects/InvoiceTaxId";
 
 export interface InvoiceTaxApi {
   ID: string;

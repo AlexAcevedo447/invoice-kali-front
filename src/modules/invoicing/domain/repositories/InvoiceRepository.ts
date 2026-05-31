@@ -1,10 +1,10 @@
-import type { Invoice } from "../entities/Invoice";
+import type { Invoice } from "@modules/invoicing/domain/entities/Invoice";
 import type {
   IdempotentRequestOptions,
   RequestOptions,
-} from "./RequestOptions";
+} from "@modules/invoicing/domain/repositories/RequestOptions";
 export type { IdempotentRequestOptions, RequestOptions };
-import type { InvoiceId } from "../value-objects/InvoiceId";
+import type { InvoiceId } from "@modules/invoicing/domain/value-objects/InvoiceId";
 
 export interface InvoiceRepository {
   list(

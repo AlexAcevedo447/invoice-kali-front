@@ -1,22 +1,26 @@
-import {
-  type CreateInvoiceCommand,
-  type CreateInvoiceItemCommand,
-  type DeleteInvoiceItemCommand,
-  type GetInvoiceByIdQuery,
-  type GetInvoiceItemByIdQuery,
-  type IdempotentRequest,
-  type InvoiceItemListResult,
-  type InvoiceItemResult,
-  type InvoiceListResult,
-  type InvoiceMetricsResult,
-  type InvoiceResult,
-  type InvoiceStatusCommand,
-  type ListInvoiceItemsQuery,
-  type ListInvoicesQuery,
-  type PublicRequest,
-  type UpdateInvoiceCommand,
-  type UpdateInvoiceItemCommand,
-} from "@modules/invoicing/application";
+import type {
+  ListInvoicesQuery,
+  GetInvoiceByIdQuery,
+  CreateInvoiceCommand,
+  UpdateInvoiceCommand,
+  InvoiceStatusCommand,
+  InvoiceResult,
+  InvoiceListResult,
+} from "../../modules/invoicing/application/contracts/invoices";
+import type {
+  ListInvoiceItemsQuery,
+  GetInvoiceItemByIdQuery,
+  CreateInvoiceItemCommand,
+  UpdateInvoiceItemCommand,
+  DeleteInvoiceItemCommand,
+  InvoiceItemResult,
+  InvoiceItemListResult,
+} from "../../modules/invoicing/application/contracts/invoiceItems";
+import type { InvoiceMetricsResult } from "../../modules/invoicing/application/contracts/metrics";
+import type {
+  PublicRequest,
+  IdempotentRequest,
+} from "../../modules/invoicing/application/contracts/common";
 
 import type { InvoicingRepositories } from "@modules/invoicing/infrastructure/createInvoicingHttpRepositories";
 import { toInvoiceId } from "@modules/invoicing/domain/value-objects/InvoiceId";

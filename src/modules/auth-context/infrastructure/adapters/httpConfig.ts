@@ -2,7 +2,7 @@ import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
   RequestOptions,
-} from "@modules/auth-context/domain/repositories";
+} from "../../domain/repositories/RequestOptions";
 import type { HttpRequestConfig } from "../../../../shared/infrastructure/http/HttpClient";
 
 const toAuthorizationHeader = (accessToken: string): string =>

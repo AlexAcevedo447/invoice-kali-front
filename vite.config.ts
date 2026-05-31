@@ -63,6 +63,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      sourcemap: true,
       chunkSizeWarningLimit: 500,
       rollupOptions: {
         output: {

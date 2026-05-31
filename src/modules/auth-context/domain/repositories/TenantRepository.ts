@@ -6,7 +6,7 @@ import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
 } from "@modules/auth-context/domain/repositories/RequestOptions";
-import type { TenantId } from "@modules/auth-context/domain/value-objects";
+import type { TenantId } from "../value-objects/TenantId";
 
 export interface TenantRepository {
   create(

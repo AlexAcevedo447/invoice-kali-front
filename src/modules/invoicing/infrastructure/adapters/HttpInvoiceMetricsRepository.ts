@@ -1,30 +1,30 @@
-import { InvoiceEndpoints } from "@modules/invoicing/application/endpoints";
-import type { InvoiceMetrics } from "../../domain/entities/InvoiceMetrics";
-import type {
-  InvoiceMetricsRepository,
-  RequestOptions,
-} from "../../domain/repositories/InvoiceMetricsRepository";
+import type { InvoiceMetricsRepository } from "@modules/invoicing/domain/repositories/InvoiceMetricsRepository";
+import type { HttpClient } from "@shared/infrastructure/http/HttpClient";
+import type { EndpointRegistryContext } from "@app/api/EndpointRegistry";
+import { resolveEndpoint } from "@app/api/EndpointRegistry";
+import { toPublicConfig } from "@modules/invoicing/infrastructure/adapters/httpConfig";
 import {
   mapInvoiceMetricsApiToDomain,
   type InvoiceMetricsApi,
 } from "@modules/invoicing/infrastructure/mappers/invoiceMapper";
-import type { HttpClient } from "../../../../shared/infrastructure/http/HttpClient";
-import { httpCore } from "../../../../shared/infrastructure/http/httpCore";
-import { toPublicConfig } from "./httpConfig";
 
-export class HttpInvoiceMetricsRepository implements InvoiceMetricsRepository {
-  private readonly httpClient: HttpClient;
+export interface CreateHttpInvoiceMetricsRepositoryDeps {
+  httpClient: HttpClient;
+  endpointRegistry: EndpointRegistryContext;
+}
 
-  constructor(httpClient: HttpClient = httpCore) {
-    this.httpClient = httpClient;
-  }
-
-  async get(options?: RequestOptions): Promise<InvoiceMetrics> {
-    const response = await this.httpClient.get<InvoiceMetricsApi>(
-      InvoiceEndpoints.metrics,
-      toPublicConfig(options),
-    );
-
-    return mapInvoiceMetricsApiToDomain(response);
-  }
+export function createHttpInvoiceMetricsRepository({
+  httpClient,
+  endpointRegistry,
+}: CreateHttpInvoiceMetricsRepositoryDeps): InvoiceMetricsRepository {
+  return {
+    async get(options) {
+      const { invoices } = await resolveEndpoint(endpointRegistry, "invoices");
+      const response = await httpClient.get<InvoiceMetricsApi>(
+        invoices.metrics,
+        toPublicConfig(options),
+      );
+      return mapInvoiceMetricsApiToDomain(response);
+    },
+  };
 }

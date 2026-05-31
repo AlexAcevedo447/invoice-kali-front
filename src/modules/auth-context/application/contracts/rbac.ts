@@ -1,4 +1,5 @@
-import type { Permission, Role } from "@modules/auth-context/domain/entities";
+import type { Permission } from "../../domain/entities/Permission";
+import type { Role } from "../../domain/entities/Role";
 
 export interface AssignUserRoleCommand {
   tenantId: string;

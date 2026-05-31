@@ -1,7 +1,7 @@
 import { Dialog } from "primereact/dialog";
 import { Button } from "primereact/button";
-import type { InvoiceStatus } from "../constants/invoiceStatus";
-import { INVOICE_STATUS_MAP } from "../constants/invoiceStatus";
+import type { InvoiceStatus } from "@modules/invoicing/ui/constants/invoiceStatus";
+import { INVOICE_STATUS_MAP } from "@modules/invoicing/ui/constants/invoiceStatus";
 
 interface InvoiceStateChangeDialogProps {
     isOpen: boolean;

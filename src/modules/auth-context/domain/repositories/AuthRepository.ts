@@ -1,15 +1,11 @@
-import type {
-  AuthSession,
-  AuthorizationDecision,
-} from "@modules/auth-context/domain/entities";
+import type { AuthSession } from "../entities/AuthSession";
+import type { AuthorizationDecision } from "../entities/AuthorizationDecision";
 import type {
   ProtectedRequestOptions,
   RequestOptions,
 } from "@modules/auth-context/domain/repositories/RequestOptions";
-import type {
-  TenantId,
-  UserId,
-} from "@modules/auth-context/domain/value-objects";
+import type { TenantId } from "../value-objects/TenantId";
+import type { UserId } from "../value-objects/UserId";
 
 export interface AuthRepository {
   login(

@@ -2,8 +2,12 @@ import type {
   EndpointModuleKey,
   EndpointModuleMap,
 } from "@app/api/EndpointTypes";
-import { createEndpointRegistry } from "../api/EndpointRegistry";
-import type { EndpointRegistry } from "@app/api/EndpointRegistry";
+import {
+  createEndpointRegistry,
+  resolveEndpoint,
+  resolveMultipleEndpoints,
+} from "../api/EndpointRegistry";
+import type { EndpointRegistryContext } from "@app/api/EndpointRegistry";
 import { createAuthContextHttpRepositories } from "@modules/auth-context/infrastructure/createAuthContextHttpRepositories";
 import type { AuthContextRepositories } from "@modules/auth-context/infrastructure/createAuthContextHttpRepositories";
 import { createInvoicingHttpRepositories } from "@modules/invoicing/infrastructure/createInvoicingHttpRepositories";
@@ -17,8 +21,8 @@ import {
   type InvoicingService,
 } from "./InvoicingService";
 
-interface ApplicationInfrastructure {
-  endpointRegistry: EndpointRegistry;
+export interface ApplicationInfrastructure {
+  endpointRegistry: EndpointRegistryContext;
   authContextRepositories: AuthContextRepositories;
   invoicingRepositories: InvoicingRepositories;
 }
@@ -50,9 +54,10 @@ export const createApplication = (
 
   return {
     endpoints: {
-      resolve: (module) => infrastructure.endpointRegistry.resolve(module),
+      resolve: (module) =>
+        resolveEndpoint(infrastructure.endpointRegistry, module),
       resolveMultiple: (modules) =>
-        infrastructure.endpointRegistry.resolveMultiple(modules),
+        resolveMultipleEndpoints(infrastructure.endpointRegistry, modules),
     },
     authContext,
     invoicing,
