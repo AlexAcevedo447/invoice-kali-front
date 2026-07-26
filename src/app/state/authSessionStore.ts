@@ -1,3 +1,7 @@
+// Helper para obtener el token fuera de React
+export function getAccessToken() {
+  return useAuthSessionStore.getState().accessToken;
+}
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { ApplicationServices } from "../application/Application";

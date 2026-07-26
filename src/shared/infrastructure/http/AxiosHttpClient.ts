@@ -4,6 +4,7 @@ import axios, {
   type AxiosInstance,
   type AxiosRequestConfig,
 } from "axios";
+import { getAccessToken } from "@app/state/authSessionStore";
 import axiosRetry from "axios-retry";
 import type {
   HttpClient,
@@ -151,6 +152,15 @@ export class AxiosHttpClient implements HttpClient {
         ...(config?.headers ?? {}),
       },
     };
+
+    // Inyectar el accessToken JWT si existe
+    const token = getAccessToken();
+    if (token) {
+      axiosConfig.headers = {
+        ...axiosConfig.headers,
+        Authorization: `Bearer ${token}`,
+      };
+    }
 
     this.attachIdempotencyKeyIfNeeded(method, axiosConfig, config);
 
