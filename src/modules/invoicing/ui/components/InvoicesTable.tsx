@@ -36,6 +36,7 @@ export const InvoicesTable = ({
             field: "clientName",
             header: "Cliente",
             sortable: true,
+            body: (row) => <span data-cy="invoice-row-customer">{row.clientName}</span>,
         },
         {
             field: "amount",
@@ -77,13 +78,15 @@ export const InvoicesTable = ({
     ];
 
     return (
-        <GenericTable<Invoice>
-            data={invoices}
-            columns={columns}
-            actions={actions}
-            loading={isLoading}
-            emptyMessage="No hay facturas registradas"
-            rowKey="id"
-        />
+        <div data-cy="invoice-table">
+            <GenericTable<Invoice>
+                data={invoices}
+                columns={columns}
+                actions={actions}
+                loading={isLoading}
+                emptyMessage="No hay facturas registradas"
+                rowKey="id"
+            />
+        </div>
     );
 };
