@@ -8,6 +8,7 @@ import { FormActions } from "../../../../shared/ui/forms/FormActions";
 import { FormField } from "../../../../shared/ui/forms/FormField";
 import { SubmitButton } from "../../../../shared/ui/forms/SubmitButton";
 import { useZodForm } from "../../../../shared/ui/forms/useZodForm";
+import { resolveHomeRoute } from "@app/routing/access";
 
 
 export const LoginForm = () => {
@@ -24,6 +25,7 @@ export const LoginForm = () => {
     const isLoading = useAuthSessionStore((state: AuthSessionState) => state.isLoading);
     const login = useAuthSessionStore((state: AuthSessionState) => state.actions.login);
     const clearError = useAuthSessionStore((state: AuthSessionState) => state.actions.clearError);
+    const logout = useAuthSessionStore((state: AuthSessionState) => state.actions.logout);
 
     const form = useZodForm<LoginFormValues>(loginSchema, {
         defaultValues: {
@@ -41,6 +43,19 @@ export const LoginForm = () => {
             clearError();
             const result = await login(values);
             if (result.success) {
+                // Un usuario sin roles/permisos reconocidos no puede usar ningún módulo:
+                // se informa el motivo y no se deja una sesión abierta sin salida.
+                const { roles, permissions } = useAuthSessionStore.getState();
+                if (!resolveHomeRoute(roles, permissions)) {
+                    logout();
+                    show({
+                        severity: "error",
+                        summary: "Acceso denegado",
+                        detail: "Tu usuario no tiene permisos asignados para ingresar.",
+                        life: 5000,
+                    });
+                    return;
+                }
                 show({
                     severity: "success",
                     summary: "Inicio de sesión exitoso",

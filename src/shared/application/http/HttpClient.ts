@@ -25,8 +25,18 @@ export interface HttpRequestConfig {
   idempotencyKey?: string;
 }
 
+export interface HttpResponseWithMeta<T> {
+  data: T;
+  headers: Record<string, string>;
+}
+
 export interface HttpClient {
   get<T>(url: string, config?: HttpRequestConfig): Promise<T>;
+  /** Igual que `get`, pero expone también las cabeceras (p. ej. `x-total-count`). */
+  getWithMeta<T>(
+    url: string,
+    config?: HttpRequestConfig,
+  ): Promise<HttpResponseWithMeta<T>>;
   post<T, TBody extends HttpRequestBody = HttpRequestBody>(
     url: string,
     body: TBody,

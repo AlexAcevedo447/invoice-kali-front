@@ -6,11 +6,25 @@ import type {
 export type { IdempotentRequestOptions, RequestOptions };
 import type { InvoiceId } from "@modules/invoicing/domain/value-objects/InvoiceId";
 
+export interface InvoicePage {
+  items: Invoice[];
+  total: number;
+}
+
 export interface InvoiceRepository {
   list(
     query: { page?: number; pageSize?: number },
     options?: RequestOptions,
   ): Promise<Invoice[]>;
+
+  /**
+   * Página de facturas junto con el total de registros del backend.
+   * Opcional: las implementaciones que no conocen el total pueden omitirlo.
+   */
+  listPage?(
+    query: { page?: number; pageSize?: number },
+    options?: RequestOptions,
+  ): Promise<InvoicePage>;
 
   findAll(options?: RequestOptions): Promise<Invoice[]>;
 

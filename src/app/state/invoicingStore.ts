@@ -17,6 +17,8 @@ export interface InvoicingState {
   error: string | null;
   page: number;
   pageSize: number;
+  /** Total de facturas en el backend (cabecera X-Total-Count). */
+  total: number;
   actions: {
     loadInvoices(page?: number, pageSize?: number): Promise<void>;
     loadInvoice(id: string): Promise<void>;
@@ -56,6 +58,8 @@ export interface InvoicingState {
     deleteInvoiceItem(id: string): Promise<boolean>;
     loadMetrics(): Promise<void>;
     clearError(): void;
+    /** Limpia los datos en memoria (p. ej. al cerrar sesión). */
+    reset(): void;
   };
 }
 
@@ -82,7 +86,8 @@ export const useInvoicingStore = create<InvoicingState>((set, get) => ({
   isLoading: false,
   error: null,
   page: 1,
-  pageSize: 20,
+  pageSize: 10,
+  total: 0,
   actions: {
     async loadInvoices(page = get().page, pageSize = get().pageSize) {
       if (!invoicingService) {
@@ -92,11 +97,11 @@ export const useInvoicingStore = create<InvoicingState>((set, get) => ({
       set({ isLoading: true, error: null });
 
       try {
-        const invoices = await invoicingService.invoices.list({
+        const { items, total } = await invoicingService.invoices.listPage({
           page,
           pageSize,
         });
-        set({ invoices, page, pageSize, isLoading: false });
+        set({ invoices: items, total, page, pageSize, isLoading: false });
       } catch (error) {
         set({ isLoading: false, error: getErrorMessage(error) });
       }
@@ -352,6 +357,17 @@ export const useInvoicingStore = create<InvoicingState>((set, get) => ({
 
     clearError() {
       set({ error: null });
+    },
+
+    reset() {
+      set({
+        invoices: [],
+        selectedInvoice: null,
+        total: 0,
+        page: 1,
+        error: null,
+        isLoading: false,
+      });
     },
   },
 }));

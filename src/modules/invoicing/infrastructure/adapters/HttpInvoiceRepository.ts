@@ -10,7 +10,23 @@ import {
   mapInvoiceApiToDomain,
   type InvoiceApi,
 } from "../mappers/invoiceMapper";
-import type { InvoiceId } from "@modules/invoicing/domain/value-objects/InvoiceId";
+type CreateInvoiceApiBody = {
+  customer_id: string;
+  issue_date?: string;
+  due_date?: string;
+  items: Array<{
+    item_id: string;
+    quantity: number;
+    unit_price: number;
+    taxes: Array<{ code: string; kind?: "DEBIT" | "CREDIT"; rate: number }>;
+  }>;
+};
+
+type UpdateInvoiceApiBody = {
+  customer_id?: string;
+  due_date?: string;
+};
+
 export type CreateHttpInvoiceRepositoryDeps = {
   httpClient: HttpClient;
   endpointRegistry: EndpointRegistryContext;
@@ -28,6 +44,17 @@ export function createHttpInvoiceRepository({
         toPublicConfig(options),
       );
       return response.map(mapInvoiceApiToDomain);
+    },
+    async listPage(query, options) {
+      const { invoices } = await resolveEndpoint(endpointRegistry, "invoices");
+      const { data, headers } = await httpClient.getWithMeta<InvoiceApi[]>(
+        invoices.listPaginated(query.page ?? 1, query.pageSize ?? 10),
+        toPublicConfig(options),
+      );
+      const items = data.map(mapInvoiceApiToDomain);
+      // El servicio de facturación informa el total en la cabecera X-Total-Count.
+      const total = Number(headers["x-total-count"]);
+      return { items, total: Number.isFinite(total) ? total : items.length };
     },
     async findAll(options) {
       return this.list({ page: 1, pageSize: 20 }, options);
@@ -49,36 +76,39 @@ export function createHttpInvoiceRepository({
     },
     async create(command, options) {
       const { invoices } = await resolveEndpoint(endpointRegistry, "invoices");
-      const response = await httpClient.post<
-        InvoiceApi,
+      // Contrato real del servicio de facturación: snake_case (create_invoice_handler.go).
+      const response = await httpClient.post<InvoiceApi, CreateInvoiceApiBody>(
+        invoices.create,
         {
-          customerId: string;
-          issueDate?: string;
-          dueDate?: string;
-          items: Array<{
-            itemId: string;
-            quantity: number;
-            unitPrice: number;
-            taxes: Array<{
-              code: string;
-              kind?: "DEBIT" | "CREDIT";
-              rate: number;
-            }>;
-          }>;
-        }
-      >(invoices.create, command, toIdempotentConfig(options));
+          customer_id: command.customerId,
+          issue_date: command.issueDate,
+          due_date: command.dueDate,
+          items: command.items.map((item) => ({
+            item_id: item.itemId,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            taxes: item.taxes.map((tax) => ({
+              code: tax.code,
+              kind: tax.kind,
+              rate: tax.rate,
+            })),
+          })),
+        },
+        toIdempotentConfig(options),
+      );
       return mapInvoiceApiToDomain(response);
     },
     async update(command, options) {
       const { invoices } = await resolveEndpoint(endpointRegistry, "invoices");
-      const response = await httpClient.put<
-        InvoiceApi,
+      // Contrato real: solo customer_id y due_date son editables (update_invoice_handler.go).
+      const response = await httpClient.put<InvoiceApi, UpdateInvoiceApiBody>(
+        invoices.update(command.id),
         {
-          id: InvoiceId;
-          customerId?: string;
-          dueDate?: string;
-        }
-      >(invoices.update(command.id), command, toIdempotentConfig(options));
+          customer_id: command.customerId,
+          due_date: command.dueDate,
+        },
+        toIdempotentConfig(options),
+      );
       return mapInvoiceApiToDomain(response);
     },
     async pay(id, options) {

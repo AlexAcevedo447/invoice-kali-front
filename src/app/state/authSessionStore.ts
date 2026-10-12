@@ -7,6 +7,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import type { ApplicationServices } from "../application/Application";
 import type { AuthSession } from "../../modules/auth-context/domain/entities/AuthSession";
 import { toTenantId } from "../../modules/auth-context/domain/value-objects/TenantId";
+import { decodeJwtClaims } from "../../shared/infrastructure/jwt/decodeJwtClaims";
 
 type AuthContextService = ApplicationServices["authContext"];
 type SessionPermission = AuthSession["permissions"][number];
@@ -27,11 +28,18 @@ export interface AuthSessionState {
   email: string | null;
   roles: string[];
   permissions: SessionPermission[];
+  /** Momento (epoch ms) en que vence el access token. */
+  expiresAt: number | null;
+  /** Indica a la pantalla de login que debe avisar que la sesión expiró. */
+  sessionExpiredNotice: boolean;
   isLoading: boolean;
   error: string | null;
   actions: {
     login(payload: LoginPayload): Promise<{ success: boolean; error?: string }>;
     logout(): void;
+    /** Cierra la sesión por vencimiento/401 y deja pendiente el aviso. */
+    expireSession(): void;
+    clearSessionExpiredNotice(): void;
     clearError(): void;
     hasRole(role: string): boolean;
     can(resource: string, action: string): boolean;
@@ -57,6 +65,8 @@ export const useAuthSessionStore = create<AuthSessionState>()(
       email: null,
       roles: [],
       permissions: [],
+      expiresAt: null,
+      sessionExpiredNotice: false,
       isLoading: false,
       error: null,
       actions: {
@@ -79,6 +89,8 @@ export const useAuthSessionStore = create<AuthSessionState>()(
               email: session.email,
               roles: session.roles,
               permissions: session.permissions,
+              expiresAt: Date.now() + session.expiresIn * 1000,
+              sessionExpiredNotice: false,
               isLoading: false,
               error: null,
             });
@@ -102,9 +114,21 @@ export const useAuthSessionStore = create<AuthSessionState>()(
             email: null,
             roles: [],
             permissions: [],
+            expiresAt: null,
             isLoading: false,
             error: null,
           });
+          // Elimina también la sesión persistida (token incluido) de localStorage.
+          useAuthSessionStore.persist.clearStorage();
+        },
+        expireSession() {
+          // Idempotente: varias peticiones 401 simultáneas no repiten el cierre.
+          if (get().status !== "authenticated") return;
+          get().actions.logout();
+          set({ sessionExpiredNotice: true });
+        },
+        clearSessionExpiredNotice() {
+          set({ sessionExpiredNotice: false });
         },
         clearError() {
           set({ error: null });
@@ -159,6 +183,7 @@ export const useAuthSessionStore = create<AuthSessionState>()(
         email: state.email,
         roles: state.roles,
         permissions: state.permissions,
+        expiresAt: state.expiresAt,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -171,3 +196,33 @@ export const useAuthSessionStore = create<AuthSessionState>()(
     },
   ),
 );
+
+/**
+ * Vencimiento de la sesión en epoch ms. Usa `expiresAt` (de `expires_in`) y,
+ * para sesiones guardadas antes de existir ese campo, el claim `exp` del JWT.
+ */
+export function getSessionExpiry(
+  state: Pick<AuthSessionState, "expiresAt" | "accessToken">,
+): number | null {
+  if (typeof state.expiresAt === "number") return state.expiresAt;
+  if (!state.accessToken) return null;
+  try {
+    const { exp } = decodeJwtClaims(state.accessToken);
+    return typeof exp === "number" ? exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isSessionExpired(
+  state: Pick<AuthSessionState, "expiresAt" | "accessToken">,
+  now = Date.now(),
+): boolean {
+  const expiry = getSessionExpiry(state);
+  return expiry !== null && expiry <= now;
+}
+
+/** Helper para cerrar la sesión vencida fuera de React (cliente HTTP). */
+export function expireSession(): void {
+  useAuthSessionStore.getState().actions.expireSession();
+}

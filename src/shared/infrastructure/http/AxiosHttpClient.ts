@@ -4,19 +4,21 @@ import axios, {
   type AxiosInstance,
   type AxiosRequestConfig,
 } from "axios";
-import { getAccessToken } from "@app/state/authSessionStore";
+import { expireSession, getAccessToken } from "@app/state/authSessionStore";
 import axiosRetry from "axios-retry";
 import type {
   HttpClient,
   HttpRequestBody,
   HttpRequestConfig,
+  HttpResponseWithMeta,
 } from "@shared/application/http/HttpClient";
 import { HttpError } from "@shared/application/http/HttpError";
+import { translateBackendMessage } from "@shared/application/http/backendMessages";
 
 type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
 type IdempotentMutationMethod = "post" | "put" | "patch";
 type UnknownRecord = Record<string, unknown>;
-type ErrorPayload = { message?: string } | string;
+type ErrorPayload = { message?: string; error?: string } | string;
 
 export interface AxiosHttpClientConfig {
   baseURL?: string;
@@ -104,6 +106,14 @@ export class AxiosHttpClient implements HttpClient {
   }
 
   async get<T>(url: string, config?: HttpRequestConfig): Promise<T> {
+    const response = await this.request<T>("get", url, undefined, config);
+    return response.data;
+  }
+
+  async getWithMeta<T>(
+    url: string,
+    config?: HttpRequestConfig,
+  ): Promise<HttpResponseWithMeta<T>> {
     return this.request<T>("get", url, undefined, config);
   }
 
@@ -112,7 +122,8 @@ export class AxiosHttpClient implements HttpClient {
     body: TBody,
     config?: HttpRequestConfig,
   ): Promise<T> {
-    return this.request<T>("post", url, body, config);
+    const response = await this.request<T>("post", url, body, config);
+    return response.data;
   }
 
   async put<T, TBody extends HttpRequestBody = HttpRequestBody>(
@@ -120,7 +131,8 @@ export class AxiosHttpClient implements HttpClient {
     body: TBody,
     config?: HttpRequestConfig,
   ): Promise<T> {
-    return this.request<T>("put", url, body, config);
+    const response = await this.request<T>("put", url, body, config);
+    return response.data;
   }
 
   async patch<T, TBody extends HttpRequestBody = HttpRequestBody>(
@@ -128,11 +140,13 @@ export class AxiosHttpClient implements HttpClient {
     body: TBody,
     config?: HttpRequestConfig,
   ): Promise<T> {
-    return this.request<T>("patch", url, body, config);
+    const response = await this.request<T>("patch", url, body, config);
+    return response.data;
   }
 
   async delete<T>(url: string, config?: HttpRequestConfig): Promise<T> {
-    return this.request<T>("delete", url, undefined, config);
+    const response = await this.request<T>("delete", url, undefined, config);
+    return response.data;
   }
 
   private async request<T>(
@@ -140,7 +154,7 @@ export class AxiosHttpClient implements HttpClient {
     url: string,
     data?: HttpRequestBody,
     config?: HttpRequestConfig,
-  ): Promise<T> {
+  ): Promise<HttpResponseWithMeta<T>> {
     const axiosConfig: AxiosRequestConfig = {
       method,
       url,
@@ -166,8 +180,22 @@ export class AxiosHttpClient implements HttpClient {
 
     try {
       const response = await this.client.request<T>(axiosConfig);
-      return response.data;
+      const headers: Record<string, string> = {};
+      Object.entries(response.headers ?? {}).forEach(([key, value]) => {
+        if (value != null) headers[key.toLowerCase()] = String(value);
+      });
+      return { data: response.data, headers };
     } catch (error) {
+      // Un 401 en una petición que llevaba token significa sesión vencida o
+      // inválida (el login no envía token, así que su 401 no entra aquí).
+      if (
+        token &&
+        isAxiosErrorWithPayload(error) &&
+        error.response?.status === 401 &&
+        !url.includes("/auth/login")
+      ) {
+        expireSession();
+      }
       throw this.mapHttpError(error);
     }
   }
@@ -218,14 +246,18 @@ export class AxiosHttpClient implements HttpClient {
   ): string | undefined {
     const payload = error.response?.data;
 
-    if (typeof payload === "string") {
-      return payload;
+    if (typeof payload === "string" && payload.trim().length > 0) {
+      return translateBackendMessage(payload);
     }
 
+    // Prioridad: mensaje específico del backend (los servicios responden
+    // {"error": "..."}), luego `message`, y solo al final el texto de Axios.
     if (isRecord(payload)) {
-      const message = payload["message"];
-      if (typeof message === "string") {
-        return message;
+      for (const key of ["error", "message"] as const) {
+        const value = payload[key];
+        if (typeof value === "string" && value.trim().length > 0) {
+          return translateBackendMessage(value);
+        }
       }
     }
 

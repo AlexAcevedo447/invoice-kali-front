@@ -1,4 +1,9 @@
-import { GenericTable, type TableColumn, type TableAction } from "@shared/ui/table/GenericTable";
+import {
+    GenericTable,
+    type ServerPagination,
+    type TableColumn,
+    type TableAction,
+} from "@shared/ui/table/GenericTable";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 import type { InvoiceStatus } from "../constants/invoiceStatus";
 
@@ -17,6 +22,7 @@ interface InvoicesTableProps {
     onEdit: (invoiceId: string) => void;
     onChangeStatus: (invoiceId: string) => void;
     onDelete: (invoiceId: string) => void;
+    serverPagination?: ServerPagination;
 }
 
 export const InvoicesTable = ({
@@ -25,6 +31,7 @@ export const InvoicesTable = ({
     onEdit,
     onChangeStatus,
     onDelete,
+    serverPagination,
 }: InvoicesTableProps) => {
     const columns: TableColumn<Invoice>[] = [
         {
@@ -70,8 +77,9 @@ export const InvoicesTable = ({
             severity: "warning",
         },
         {
-            label: "Eliminar",
-            icon: "pi pi-trash",
+            // Cancela la factura (PATCH /cancel); no la elimina.
+            label: "Cancelar",
+            icon: "pi pi-ban",
             onClick: (row) => onDelete(row.id),
             severity: "danger",
         },
@@ -86,6 +94,7 @@ export const InvoicesTable = ({
                 loading={isLoading}
                 emptyMessage="No hay facturas registradas"
                 rowKey="id"
+                serverPagination={serverPagination}
             />
         </div>
     );

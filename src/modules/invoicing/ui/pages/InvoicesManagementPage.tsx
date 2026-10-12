@@ -41,6 +41,9 @@ export const InvoicesManagementPage = () => {
         invoices,
         isLoading,
         error,
+        page,
+        pageSize,
+        total,
         actions: {
             loadInvoices,
             payInvoice,
@@ -52,7 +55,7 @@ export const InvoicesManagementPage = () => {
         if (hasLoadedRef.current) return;
         hasLoadedRef.current = true;
 
-        loadInvoices().catch(() => {
+        loadInvoices(1).catch(() => {
             toastRef.current?.show({
                 severity: "error",
                 summary: "Error",
@@ -77,9 +80,11 @@ export const InvoicesManagementPage = () => {
         clientName: inv.customerId,
         amount: inv.total,
         status: mapDomainStatusToUI(inv.status),
+        // Se conserva la fecha completa: recortarla a YYYY-MM-DD la interpretaba
+        // como UTC y en zonas UTC-5 mostraba el día anterior.
         dueDate: inv.dueDate
-            ? new Date(inv.dueDate).toISOString().split('T')[0]
-            : new Date().toISOString().split('T')[0],
+            ? new Date(inv.dueDate).toISOString()
+            : new Date().toISOString(),
     }));
 
     const selectedInvoice = tableData.find((inv) => inv.id === selectedInvoiceId);
@@ -100,31 +105,22 @@ export const InvoicesManagementPage = () => {
         setDeleteDialogOpen(true);
     };
 
+    const showSuccess = (detail: string) => {
+        toastRef.current?.show({ severity: "success", summary: "Éxito", detail });
+    };
+
+    // Las acciones del store devuelven null cuando el backend responde con error;
+    // en ese caso el error ya se muestra desde el efecto de `error`, así que el
+    // aviso de éxito se muestra únicamente si hubo respuesta exitosa.
     const handleConfirmStateChange = async (newStatus: InvoiceStatus) => {
         if (!selectedInvoiceId) return;
 
-        try {
-            if (newStatus === "paid") {
-                await payInvoice(selectedInvoiceId);
-                toastRef.current?.show({
-                    severity: "success",
-                    summary: "Éxito",
-                    detail: "Factura marcada como pagada",
-                });
-            } else if (newStatus === "cancelled") {
-                await cancelInvoice(selectedInvoiceId);
-                toastRef.current?.show({
-                    severity: "success",
-                    summary: "Éxito",
-                    detail: "Factura cancelada",
-                });
-            }
-        } catch {
-            toastRef.current?.show({
-                severity: "error",
-                summary: "Error",
-                detail: "No se pudo cambiar el estado de la factura",
-            });
+        if (newStatus === "paid") {
+            const result = await payInvoice(selectedInvoiceId);
+            if (result) showSuccess("Factura marcada como pagada");
+        } else if (newStatus === "cancelled") {
+            const result = await cancelInvoice(selectedInvoiceId);
+            if (result) showSuccess("Factura cancelada");
         }
 
         setStateChangeDialogOpen(false);
@@ -134,23 +130,25 @@ export const InvoicesManagementPage = () => {
     const handleConfirmDelete = async () => {
         if (!selectedInvoiceId) return;
 
-        try {
-            await cancelInvoice(selectedInvoiceId);
-            toastRef.current?.show({
-                severity: "success",
-                summary: "Éxito",
-                detail: "Factura cancelada",
-            });
-        } catch {
-            toastRef.current?.show({
-                severity: "error",
-                summary: "Error",
-                detail: "No se pudo cancelar la factura",
-            });
-        }
+        const result = await cancelInvoice(selectedInvoiceId);
+        if (result) showSuccess("Factura cancelada");
 
         setDeleteDialogOpen(false);
         setSelectedInvoiceId(null);
+    };
+
+    const handleSaved = (mode: "created" | "updated") => {
+        if (mode === "created") {
+            showSuccess("Factura creada correctamente");
+            // La nueva factura queda primera (orden por fecha de creación): volver a la página 1.
+            void loadInvoices(1);
+        } else {
+            showSuccess("Factura actualizada correctamente");
+        }
+    };
+
+    const handlePage = (first: number, rows: number) => {
+        void loadInvoices(Math.floor(first / rows) + 1, rows);
     };
 
     const handleCloseFormModal = () => {
@@ -185,6 +183,12 @@ export const InvoicesManagementPage = () => {
                     onEdit={handleEdit}
                     onChangeStatus={handleChangeStatus}
                     onDelete={handleDelete}
+                    serverPagination={{
+                        totalRecords: total,
+                        first: (page - 1) * pageSize,
+                        rows: pageSize,
+                        onPage: handlePage,
+                    }}
                 />
             </div>
 
@@ -193,6 +197,7 @@ export const InvoicesManagementPage = () => {
                 onClose={handleCloseFormModal}
                 title={selectedInvoiceId ? "Editar Factura" : "Crear Nueva Factura"}
                 invoiceToEdit={selectedInvoiceEntity}
+                onSaved={handleSaved}
             />
 
             {selectedInvoice && (

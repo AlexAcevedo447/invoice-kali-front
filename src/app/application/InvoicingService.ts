@@ -22,6 +22,7 @@ import type {
   IdempotentRequest,
 } from "../../modules/invoicing/application/contracts/common";
 
+import type { InvoicePage } from "@modules/invoicing/domain/repositories/InvoiceRepository";
 import type { InvoicingRepositories } from "@modules/invoicing/infrastructure/createInvoicingHttpRepositories";
 import { toInvoiceId } from "@modules/invoicing/domain/value-objects/InvoiceId";
 import { toInvoiceItemId } from "@modules/invoicing/domain/value-objects/InvoiceItemId";
@@ -31,6 +32,10 @@ export interface InvoicingService {
       query: ListInvoicesQuery,
       options?: PublicRequest,
     ): Promise<InvoiceListResult>;
+    listPage(
+      query: ListInvoicesQuery,
+      options?: PublicRequest,
+    ): Promise<InvoicePage>;
     getById(
       query: GetInvoiceByIdQuery,
       options?: PublicRequest,
@@ -85,6 +90,13 @@ export const createInvoicingService = (
   return {
     invoices: {
       list: (query, options) => repos.invoiceRepository.list(query, options),
+      listPage: async (query, options) => {
+        if (repos.invoiceRepository.listPage) {
+          return repos.invoiceRepository.listPage(query, options);
+        }
+        const items = await repos.invoiceRepository.list(query, options);
+        return { items, total: items.length };
+      },
       getById: (query, options) =>
         repos.invoiceRepository.getById(toInvoiceId(query.id), options),
       create: (command, options) =>
