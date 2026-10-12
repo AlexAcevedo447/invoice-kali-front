@@ -37,32 +37,34 @@ export interface ApiAuthorizationDecision {
   reason?: string;
 }
 
+// Auth serializa sus entidades de dominio sin tags JSON: las claves llegan en
+// PascalCase (Id, TenantId, ...). Verificado contra GET /users, /roles, etc.
 export interface ApiUser {
-  id: string;
-  tenant_id: string;
-  identification_number: string;
-  username: string;
-  email: string;
+  Id: string;
+  TenantId: string;
+  IdentificationNumber: string;
+  Username: string;
+  Email: string;
 }
 
 export interface ApiTenant {
-  id: string;
-  name: string;
-  status: "ACTIVE" | "SUSPENDED";
+  Id: string;
+  Name: string;
+  Status: "ACTIVE" | "SUSPENDED";
 }
 
 export interface ApiRole {
-  id: string;
-  tenant_id: string;
-  name: string;
-  description: string;
+  Id: string;
+  TenantId: string;
+  Name: string;
+  Description: string;
 }
 
 export interface ApiPermission {
-  id: string;
-  tenant_id: string;
-  resource: string;
-  action: string;
+  Id: string;
+  TenantId: string;
+  Resource: string;
+  Action: string;
 }
 
 export const mapHealthApiToDomain = (
@@ -98,29 +100,29 @@ export const mapAuthorizationApiToDomain = (
 });
 
 export const mapUserApiToDomain = (input: ApiUser): User => ({
-  id: toUserId(input.id),
-  tenantId: toTenantId(input.tenant_id),
-  identificationNumber: input.identification_number,
-  username: input.username,
-  email: input.email,
+  id: toUserId(input.Id),
+  tenantId: toTenantId(input.TenantId),
+  identificationNumber: input.IdentificationNumber,
+  username: input.Username,
+  email: input.Email,
 });
 
 export const mapTenantApiToDomain = (input: ApiTenant): Tenant => ({
-  id: toTenantId(input.id),
-  name: input.name,
-  status: input.status,
+  id: toTenantId(input.Id),
+  name: input.Name,
+  status: input.Status,
 });
 
 export const mapRoleApiToDomain = (input: ApiRole): Role => ({
-  id: toRoleId(input.id),
-  tenantId: toTenantId(input.tenant_id),
-  name: input.name,
-  description: input.description,
+  id: toRoleId(input.Id),
+  tenantId: toTenantId(input.TenantId),
+  name: input.Name,
+  description: input.Description,
 });
 
 export const mapPermissionApiToDomain = (input: ApiPermission): Permission => ({
-  id: toPermissionId(input.id),
-  tenantId: toTenantId(input.tenant_id),
-  resource: input.resource,
-  action: input.action,
+  id: toPermissionId(input.Id),
+  tenantId: toTenantId(input.TenantId),
+  resource: input.Resource,
+  action: input.Action,
 });
