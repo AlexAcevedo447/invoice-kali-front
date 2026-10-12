@@ -22,7 +22,7 @@ export const toDateTimeLocalValue = (value?: Date | string | null): string => {
 
 // En pantalla la tasa se captura como porcentaje (19 = 19 %); el servicio de
 // facturación la espera como fracción (0.19), ver tax_calculator.go.
-const percentToRate = (percent: number): number => Number((percent / 100).toFixed(6));
+export const percentToRate = (percent: number): number => Number((percent / 100).toFixed(6));
 const rateToPercent = (rate: number): number => Number((rate * 100).toFixed(4));
 
 export const getCreateInvoiceDefaultValues = (): CreateInvoiceFormValues => ({
@@ -48,6 +48,7 @@ export const mapInvoiceToCreateInvoiceFormValues = (
   items:
     invoice.items.length > 0
       ? invoice.items.map((item: Invoice["items"][number]) => ({
+          lineId: String(item.id),
           itemId: item.itemId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
@@ -58,7 +59,9 @@ export const mapInvoiceToCreateInvoiceFormValues = (
                   kind: tax.kind,
                   rate: rateToPercent(tax.rate),
                 }))
-              : [{ code: "IVA", kind: "DEBIT", rate: 18 }],
+              : // Línea guardada sin impuestos: se muestra con tasa 0 para no
+                // agregar un impuesto que el usuario no puso al editar.
+                [{ code: "IVA", kind: "DEBIT", rate: 0 }],
         }))
       : [
           {

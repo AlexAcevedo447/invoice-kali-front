@@ -16,6 +16,10 @@ export interface TableAction<T> {
     onClick: (row: T) => void;
     severity?: "success" | "secondary" | "info" | "warning" | "danger" | "help";
     disabled?: (row: T) => boolean;
+    /** Texto del tooltip por fila (p. ej. el motivo de un botón deshabilitado). */
+    tooltip?: (row: T) => string;
+    /** Selector estable para pruebas. */
+    cy?: string;
 }
 
 /**
@@ -120,7 +124,8 @@ export const GenericTable = <T extends object>({
                                     outlined
                                     severity={action.severity ?? "secondary"}
                                     disabled={action.disabled?.(row) ?? false}
-                                    title={action.label}
+                                    title={action.tooltip?.(row) ?? action.label}
+                                    data-cy={action.cy}
                                 />
                             ))}
                         </div>

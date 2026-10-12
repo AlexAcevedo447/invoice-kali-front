@@ -21,4 +21,7 @@ export const toIdempotentConfig = (
 ): HttpRequestConfig => ({
   signal: options.signal,
   idempotencyKey: options.idempotencyKey,
+  // El cliente HTTP solo añade la clave a POST/PUT/PATCH; el servicio de
+  // facturación también la exige en DELETE (p. ej. borrar una línea).
+  headers: { "Idempotency-Key": options.idempotencyKey },
 });

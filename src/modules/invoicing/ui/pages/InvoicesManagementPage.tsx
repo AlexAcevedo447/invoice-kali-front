@@ -91,16 +91,24 @@ export const InvoicesManagementPage = () => {
     const selectedInvoiceEntity = invoices.find((inv) => inv.id === selectedInvoiceId) ?? null;
 
     const handleEdit = (invoiceId: string) => {
+        // Solo las facturas Pendientes son editables (Pagada/Cancelada quedan cerradas).
+        const invoice = invoices.find((inv) => inv.id === invoiceId);
+        if (!invoice || invoice.status !== "PENDING") return;
         setSelectedInvoiceId(invoiceId);
         setIsFormModalOpen(true);
     };
 
+    const isPending = (invoiceId: string) =>
+        invoices.find((inv) => inv.id === invoiceId)?.status === "PENDING";
+
     const handleChangeStatus = (invoiceId: string) => {
+        if (!isPending(invoiceId)) return;
         setSelectedInvoiceId(invoiceId);
         setStateChangeDialogOpen(true);
     };
 
     const handleDelete = (invoiceId: string) => {
+        if (!isPending(invoiceId)) return;
         setSelectedInvoiceId(invoiceId);
         setDeleteDialogOpen(true);
     };
@@ -144,6 +152,8 @@ export const InvoicesManagementPage = () => {
             void loadInvoices(1);
         } else {
             showSuccess("Factura actualizada correctamente");
+            // Recarga la página actual: las líneas editadas cambian los totales.
+            void loadInvoices(page, pageSize);
         }
     };
 

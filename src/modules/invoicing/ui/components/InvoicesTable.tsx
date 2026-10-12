@@ -63,18 +63,33 @@ export const InvoicesTable = ({
         },
     ];
 
+    // Solo las facturas Pendientes admiten acciones; Pagadas y Canceladas quedan
+    // cerradas (el backend también lo exige).
+    const isClosed = (row: Invoice) => row.status !== "pending";
+    const tooltipFor = (label: string) => (row: Invoice) => {
+        if (row.status === "paid") return "La factura pagada no admite modificaciones.";
+        if (row.status === "cancelled") return "La factura cancelada no admite modificaciones.";
+        return label;
+    };
+
     const actions: TableAction<Invoice>[] = [
         {
             label: "Editar",
             icon: "pi pi-pencil",
             onClick: (row) => onEdit(row.id),
             severity: "info",
+            disabled: isClosed,
+            tooltip: tooltipFor("Editar"),
+            cy: "action-edit",
         },
         {
             label: "Cambiar estado",
             icon: "pi pi-refresh",
             onClick: (row) => onChangeStatus(row.id),
             severity: "warning",
+            disabled: isClosed,
+            tooltip: tooltipFor("Cambiar estado"),
+            cy: "action-change-status",
         },
         {
             // Cancela la factura (PATCH /cancel); no la elimina.
@@ -82,6 +97,9 @@ export const InvoicesTable = ({
             icon: "pi pi-ban",
             onClick: (row) => onDelete(row.id),
             severity: "danger",
+            disabled: isClosed,
+            tooltip: tooltipFor("Cancelar"),
+            cy: "action-cancel",
         },
     ];
 

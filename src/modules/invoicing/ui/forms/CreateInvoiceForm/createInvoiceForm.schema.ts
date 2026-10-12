@@ -7,6 +7,8 @@ export const taxSchema = z.object({
 });
 
 export const itemSchema = z.object({
+  // Id de la línea ya guardada (invoice-items); vacío en líneas nuevas.
+  lineId: z.string().optional(),
   // El servicio de facturación exige UUID en item_id y customer_id.
   itemId: z
     .string()

@@ -100,7 +100,6 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                     <button
                         type="button"
                         className="p-button p-component p-button-text"
-                        disabled={isEditMode}
                         onClick={appendItem}
                     >
                         Add Item
@@ -115,7 +114,7 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                 type="button"
                                 className="p-button p-component p-button-text p-button-danger"
                                 onClick={() => removeItem(index)}
-                                disabled={isEditMode || itemsArray.fields.length === 1}
+                                disabled={itemsArray.fields.length === 1}
                             >
                                 Remove
                             </button>
@@ -133,7 +132,7 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                         id={`items.${index}.itemId`}
                                         type="text"
                                         className="p-inputtext p-component w-full"
-                                        disabled={isEditMode}
+                                        disabled={isEditMode && Boolean(field.lineId)}
                                         {...form.register(`items.${index}.itemId`)}
                                     />
                                 </FormField>
@@ -150,7 +149,6 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                         type="number"
                                         min={1}
                                         className="p-inputtext p-component w-full"
-                                        disabled={isEditMode}
                                         {...form.register(`items.${index}.quantity`)}
                                     />
                                 </FormField>
@@ -168,7 +166,6 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                         min={0.01}
                                         step={0.01}
                                         className="p-inputtext p-component w-full"
-                                        disabled={isEditMode}
                                         {...form.register(`items.${index}.unitPrice`)}
                                     />
                                 </FormField>
@@ -188,7 +185,6 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                         id={`items.${index}.taxes.0.code`}
                                         type="text"
                                         className="p-inputtext p-component w-full"
-                                        disabled={isEditMode}
                                         {...form.register(`items.${index}.taxes.0.code`)}
                                     />
                                 </FormField>
@@ -203,7 +199,6 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                     <select
                                         id={`items.${index}.taxes.0.kind`}
                                         className="p-inputtext p-component w-full"
-                                        disabled={isEditMode}
                                         {...form.register(`items.${index}.taxes.0.kind`)}
                                     >
                                         <option value="DEBIT">DEBIT</option>
@@ -224,7 +219,6 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                         min={0}
                                         step={0.01}
                                         className="p-inputtext p-component w-full"
-                                        disabled={isEditMode}
                                         {...form.register(`items.${index}.taxes.0.rate`)}
                                     />
                                 </FormField>
