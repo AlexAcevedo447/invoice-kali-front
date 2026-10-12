@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { z } from "zod";
 import { useApplication } from "../../../../app/application/useApplication";
@@ -6,19 +6,26 @@ import { useAuthSessionStore } from "../../../../app/state/authSessionStore";
 import type { AuthSessionState } from "../../../../app/state/authSessionStore";
 import { createIdempotencyKey } from "../../../../app/state/createIdempotencyKey";
 import { toTenantId } from "../../../auth-context/domain/value-objects/TenantId";
+import { toUserId } from "../../../auth-context/domain/value-objects/UserId";
+import { toRoleId } from "../../../auth-context/domain/value-objects/RoleId";
 import { HttpError } from "../../../../shared/application/http/HttpError";
 import { FormActions } from "../../../../shared/ui/forms/FormActions";
 import { FormField } from "../../../../shared/ui/forms/FormField";
 import { SubmitButton } from "../../../../shared/ui/forms/SubmitButton";
 import { useZodForm } from "../../../../shared/ui/forms/useZodForm";
 import { useGlobalToast } from "../../../../shared/ui/GlobalToastContext";
+import type { Role } from "../../../auth-context/domain/entities/Role";
 
 const userSchema = z.object({
     identificationNumber: z.string().min(1, "Identification number is required"),
     username: z.string().min(1, "Username is required"),
     email: z.string().email("Enter a valid email"),
     password: z.string().min(1, "Password is required"),
+    roleId: z.string().min(1, "Role is required"),
 });
+
+const errorMessage = (error: unknown): string =>
+    error instanceof Error && error.message ? error.message : "Error inesperado.";
 
 type UserFormValues = z.infer<typeof userSchema>;
 
@@ -28,6 +35,48 @@ export const UserCreateForm = () => {
     const application = useApplication();
     const accessToken = useAuthSessionStore((state: AuthSessionState) => state.accessToken);
     const tenantId = useAuthSessionStore((state: AuthSessionState) => state.tenantId);
+    const [roles, setRoles] = useState<Role[]>([]);
+    const [rolesLoaded, setRolesLoaded] = useState(false);
+
+    // Roles disponibles en el tenant (GET /api/v1/roles), filtrados a los que tienen
+    // al menos un permiso (GET /api/v1/rbac/roles/permissions): un rol sin permisos
+    // dejaría al usuario sin acceso. No se asigna ningún rol por defecto.
+    useEffect(() => {
+        if (!accessToken || !tenantId) return;
+        let cancelled = false;
+        const tenant = toTenantId(tenantId);
+        application.authContext.roles
+            .list({ tenantId: tenant }, { accessToken })
+            .then((allRoles) =>
+                Promise.all(
+                    allRoles.map(async (role) => {
+                        const links = await application.authContext.rbac.getRolePermissions(
+                            { tenantId: tenant, roleId: role.id },
+                            { accessToken }
+                        );
+                        return links.length > 0 ? role : null;
+                    })
+                )
+            )
+            .then((result) => {
+                if (!cancelled) setRoles(result.filter((role): role is Role => role !== null));
+            })
+            .catch((error: unknown) => {
+                if (cancelled) return;
+                show({
+                    severity: "error",
+                    summary: "No se pudieron cargar los roles",
+                    detail: errorMessage(error),
+                    life: 4000,
+                });
+            })
+            .finally(() => {
+                if (!cancelled) setRolesLoaded(true);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [application, accessToken, tenantId, show]);
 
     const form = useZodForm<UserFormValues>(userSchema, {
         defaultValues: {
@@ -35,6 +84,7 @@ export const UserCreateForm = () => {
             username: "",
             email: "",
             password: "",
+            roleId: "",
         },
     });
 
@@ -57,14 +107,6 @@ export const UserCreateForm = () => {
                     idempotencyKey: createIdempotencyKey(),
                 }
             );
-
-            show({
-                severity: "success",
-                summary: "Usuario creado",
-                detail: "El usuario se creó correctamente.",
-                life: 3000,
-            });
-            form.reset();
         } catch (error) {
             if (error instanceof HttpError && error.status === 409) {
                 show({
@@ -77,10 +119,46 @@ export const UserCreateForm = () => {
                 show({
                     severity: "error",
                     summary: "Error al crear usuario",
-                    detail: "No se pudo crear el usuario. Intenta nuevamente.",
-                    life: 4000,
+                    detail: errorMessage(error),
+                    life: 5000,
                 });
             }
+            isSubmittingRef.current = false;
+            return;
+        }
+
+        // POST /users no devuelve el id: se consulta por correo y se asigna el rol elegido.
+        try {
+            const user = await application.authContext.users.getByEmail(
+                { tenantId: toTenantId(tenantId), email: values.email },
+                { accessToken }
+            );
+            await application.authContext.rbac.assignUserRole(
+                {
+                    tenantId: toTenantId(tenantId),
+                    userId: toUserId(String(user.id)),
+                    roleId: toRoleId(values.roleId),
+                },
+                { accessToken, idempotencyKey: createIdempotencyKey() }
+            );
+
+            const roleName = roles.find((role) => String(role.id) === values.roleId)?.name;
+            show({
+                severity: "success",
+                summary: "Usuario creado",
+                detail: roleName
+                    ? `El usuario se creó correctamente con el rol "${roleName}".`
+                    : "El usuario se creó correctamente.",
+                life: 4000,
+            });
+            form.reset();
+        } catch (error) {
+            show({
+                severity: "error",
+                summary: "Usuario creado sin rol",
+                detail: `El usuario se creó, pero no se pudo asignar el rol: ${errorMessage(error)}`,
+                life: 6000,
+            });
         } finally {
             isSubmittingRef.current = false;
         }
@@ -145,6 +223,7 @@ export const UserCreateForm = () => {
                     id="password"
                     label="Password"
                     required
+                    hint="Mínimo 12 caracteres, con mayúscula, minúscula, número y símbolo, sin espacios."
                     error={form.formState.errors.password?.message}
                 >
                     <input
@@ -155,6 +234,35 @@ export const UserCreateForm = () => {
                         autoComplete="new-password"
                         {...form.register("password")}
                     />
+                </FormField>
+
+                <FormField
+                    id="roleId"
+                    label="Role"
+                    required
+                    hint={
+                        rolesLoaded && roles.length === 0
+                            ? "No hay roles con permisos asignados en este tenant."
+                            : undefined
+                    }
+                    error={form.formState.errors.roleId?.message}
+                >
+                    <select
+                        id="roleId"
+                        data-cy="user-role"
+                        className="p-inputtext p-component w-full"
+                        disabled={!rolesLoaded || roles.length === 0}
+                        {...form.register("roleId")}
+                    >
+                        <option value="">
+                            {rolesLoaded ? "Selecciona un rol" : "Cargando roles..."}
+                        </option>
+                        {roles.map((role) => (
+                            <option key={String(role.id)} value={String(role.id)}>
+                                {role.name}
+                            </option>
+                        ))}
+                    </select>
                 </FormField>
 
                 <FormActions>
