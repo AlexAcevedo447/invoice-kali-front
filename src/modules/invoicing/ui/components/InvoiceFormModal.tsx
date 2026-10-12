@@ -7,6 +7,8 @@ interface InvoiceFormModalProps {
     onClose: () => void;
     title: string;
     invoiceToEdit?: Invoice | null;
+    /** Se invoca solo cuando el backend confirmó el guardado. */
+    onSaved?: (mode: "created" | "updated") => void;
 }
 
 export const InvoiceFormModal = ({
@@ -14,6 +16,7 @@ export const InvoiceFormModal = ({
     onClose,
     title,
     invoiceToEdit,
+    onSaved,
 }: InvoiceFormModalProps) => {
     return (
         <Dialog
@@ -23,7 +26,13 @@ export const InvoiceFormModal = ({
             modal
             style={{ width: "90vw", maxWidth: "600px" }}
         >
-            <CreateInvoiceForm invoiceToEdit={invoiceToEdit} onSuccess={onClose} />
+            <CreateInvoiceForm
+                invoiceToEdit={invoiceToEdit}
+                onSuccess={() => {
+                    onSaved?.(invoiceToEdit ? "updated" : "created");
+                    onClose();
+                }}
+            />
         </Dialog>
     );
 };

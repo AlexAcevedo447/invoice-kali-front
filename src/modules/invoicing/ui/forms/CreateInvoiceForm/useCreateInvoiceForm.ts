@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useFieldArray } from "react-hook-form";
 import { useInvoicingStore } from "../../../../../app/state/invoicingStore";
 import type { InvoicingState } from "../../../../../app/state/invoicingStore";
@@ -31,6 +31,7 @@ export function useCreateInvoiceForm({
     (state: InvoicingState) => state.actions.clearError,
   );
   const isEditMode = Boolean(invoiceToEdit);
+  const [persistError, setPersistError] = useState<string | null>(null);
 
   const form = useZodForm(createInvoiceSchema, {
     defaultValues: getCreateInvoiceDefaultValues(),
@@ -55,17 +56,30 @@ export function useCreateInvoiceForm({
       isSubmittingRef.current = true;
       try {
         clearError();
-        const result =
-          isEditMode && invoiceToEdit
-            ? await updateInvoice(
-                mapCreateInvoiceFormValuesToUpdateCommand(
-                  values,
-                  invoiceToEdit.id,
-                ),
-              )
-            : await createInvoice(
-                mapCreateInvoiceFormValuesToCreateCommand(values),
-              );
+        setPersistError(null);
+        if (isEditMode && invoiceToEdit) {
+          const command = mapCreateInvoiceFormValuesToUpdateCommand(
+            values,
+            invoiceToEdit.id,
+          );
+          const result = await updateInvoice(command);
+          if (!result) return;
+          // Confirmar que el backend realmente guardó lo enviado antes de cerrar.
+          const sameCustomer = result.customerId === command.customerId;
+          const sameDueDate =
+            !command.dueDate ||
+            (result.dueDate !== null &&
+              result.dueDate.getTime() === new Date(command.dueDate).getTime());
+          if (!sameCustomer || !sameDueDate) {
+            setPersistError("La factura no se actualizó. Intenta nuevamente.");
+            return;
+          }
+          onSuccess?.();
+          return;
+        }
+        const result = await createInvoice(
+          mapCreateInvoiceFormValuesToCreateCommand(values),
+        );
         if (result) onSuccess?.();
       } finally {
         isSubmittingRef.current = false;
@@ -93,7 +107,7 @@ export function useCreateInvoiceForm({
     itemsArray,
     isEditMode,
     isLoading,
-    error,
+    error: error ?? persistError,
     onSafeSubmit,
     appendItem,
     removeItem,

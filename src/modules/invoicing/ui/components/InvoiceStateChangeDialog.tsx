@@ -10,14 +10,17 @@ interface InvoiceStateChangeDialogProps {
     currentStatus: InvoiceStatus;
 }
 
+// Solo se ofrecen transiciones con endpoint real en el servicio de facturación:
+// PENDING → PAID (PATCH /pay) y PENDING → CANCELED (PATCH /cancel).
+// "Vencida" y "Borrador" no existen en el backend, así que no se ofrecen.
 const getAvailableStatusTransitions = (
     current: InvoiceStatus
 ): InvoiceStatus[] => {
     const transitions: Record<InvoiceStatus, InvoiceStatus[]> = {
-        draft: ["pending", "cancelled"],
-        pending: ["paid", "overdue", "cancelled"],
+        draft: [],
+        pending: ["paid", "cancelled"],
         paid: [],
-        overdue: ["paid", "cancelled"],
+        overdue: [],
         cancelled: [],
     };
     return transitions[current] || [];

@@ -214,7 +214,7 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                             <div className="col-12 md:col-4">
                                 <FormField
                                     id={`items.${index}.taxes.0.rate`}
-                                    label="Rate"
+                                    label="Rate (%)"
                                     required
                                     error={getErrorMessage(form.formState.errors, ["items", index, "taxes", 0, "rate"])}
                                 >

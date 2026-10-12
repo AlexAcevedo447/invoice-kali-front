@@ -18,7 +18,7 @@ export const InvoiceDeleteConfirmDialog = ({
         <Dialog
             visible={isOpen}
             onHide={onClose}
-            header="Eliminar factura"
+            header="Cancelar factura"
             modal
             style={{ width: "90vw", maxWidth: "400px" }}
         >
@@ -26,19 +26,19 @@ export const InvoiceDeleteConfirmDialog = ({
                 <p>
                     {invoiceNumber ? (
                         <>
-                            ¿Estás seguro de que quieres eliminar la factura <strong>{invoiceNumber}</strong>?
-                            Esta acción no se puede deshacer.
+                            ¿Estás seguro de que quieres cancelar la factura <strong>{invoiceNumber}</strong>?
+                            Quedará en estado Cancelada y esta acción no se puede deshacer.
                         </>
                     ) : (
-                        "¿Estás seguro de que quieres eliminar esta factura? Esta acción no se puede deshacer."
+                        "¿Estás seguro de que quieres cancelar esta factura? Quedará en estado Cancelada y esta acción no se puede deshacer."
                     )}
                 </p>
             </div>
 
             <div className="flex gap-2 justify-content-end mt-3">
-                <Button label="Cancelar" severity="secondary" onClick={onClose} />
+                <Button label="Volver" severity="secondary" onClick={onClose} />
                 <Button
-                    label="Eliminar"
+                    label="Cancelar factura"
                     severity="danger"
                     onClick={onConfirm}
                 />

@@ -20,6 +20,11 @@ export const toDateTimeLocalValue = (value?: Date | string | null): string => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
+// En pantalla la tasa se captura como porcentaje (19 = 19 %); el servicio de
+// facturación la espera como fracción (0.19), ver tax_calculator.go.
+const percentToRate = (percent: number): number => Number((percent / 100).toFixed(6));
+const rateToPercent = (rate: number): number => Number((rate * 100).toFixed(4));
+
 export const getCreateInvoiceDefaultValues = (): CreateInvoiceFormValues => ({
   customerId: "",
   issueDate: "",
@@ -51,7 +56,7 @@ export const mapInvoiceToCreateInvoiceFormValues = (
               ? item.taxes.map((tax: (typeof item)["taxes"][number]) => ({
                   code: tax.code,
                   kind: tax.kind,
-                  rate: tax.rate,
+                  rate: rateToPercent(tax.rate),
                 }))
               : [{ code: "IVA", kind: "DEBIT", rate: 18 }],
         }))
@@ -75,7 +80,11 @@ export const mapCreateInvoiceFormValuesToCreateCommand = (
     itemId: item.itemId,
     quantity: item.quantity,
     unitPrice: item.unitPrice,
-    taxes: item.taxes,
+    taxes: item.taxes.map((tax) => ({
+      code: tax.code,
+      kind: tax.kind,
+      rate: percentToRate(tax.rate),
+    })),
   })),
 });
 
