@@ -100,6 +100,14 @@ export const canReadInvoiceItems = (permissions: SessionPermission[]): boolean =
   hasPermission(permissions, "invoice-items", "read");
 
 /**
+ * Crear, editar y eliminar líneas de una factura existente y sus impuestos
+ * (invoice-items/manage; POST/PUT/DELETE /invoice-items). Crear una factura
+ * nueva con sus líneas solo exige invoices/manage (D4-05).
+ */
+export const canManageInvoiceItems = (permissions: SessionPermission[]): boolean =>
+  hasPermission(permissions, "invoice-items", "manage");
+
+/**
  * Módulo de facturación (CA-04.10): solo por permisos efectivos (lectura de
  * facturas, líneas, clientes o productos; manage y comodines incluidos). El
  * nombre del rol (p. ej. "invoicing") no concede nada.

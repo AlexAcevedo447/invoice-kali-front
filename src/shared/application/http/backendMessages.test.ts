@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { translateBackendMessage } from "./backendMessages";
+import { KNOWN_MESSAGES, translateBackendMessage } from "./backendMessages";
 
 describe("translateBackendMessage", () => {
     it.each([
@@ -73,6 +73,22 @@ describe("translateBackendMessage", () => {
         expect(translateBackendMessage("role is assigned to users")).toBe(
             "El rol está asignado a usuarios. Quítalo de esos usuarios antes de eliminarlo.",
         );
+    });
+
+    it.each([
+        ["tax code is required", "El código del impuesto es obligatorio."],
+        ["tax kind must be DEBIT or CREDIT", "El tipo de impuesto debe ser débito o crédito."],
+        ["tax rate must be greater than or equal to 0", "La tarifa del impuesto no puede ser negativa."],
+        [
+            "tax code is repeated in the same item",
+            "Hay un código de impuesto repetido en la misma línea. Cada impuesto de una línea debe tener un código distinto.",
+        ],
+    ])("traduce el mensaje de impuestos %s", (message, expected) => {
+        expect(translateBackendMessage(message)).toBe(expected);
+    });
+
+    it("todas las claves están en minúsculas y sin espacios a los lados (si no, nunca coincidirían)", () => {
+        Object.keys(KNOWN_MESSAGES).forEach((key) => expect(key).toBe(key.trim().toLowerCase()));
     });
 
     it("no distingue mayúsculas ni espacios a los lados", () => {

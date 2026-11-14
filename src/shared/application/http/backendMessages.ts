@@ -5,7 +5,7 @@
  * Solo se traducen mensajes con equivalencia exacta conocida; cualquier otro
  * mensaje se devuelve tal cual para no ocultar errores desconocidos.
  */
-const KNOWN_MESSAGES: Record<string, string> = {
+export const KNOWN_MESSAGES: Readonly<Record<string, string>> = {
   // Autenticación
   "invalid credentials": "Credenciales incorrectas.",
   "company code required":
@@ -98,7 +98,10 @@ const KNOWN_MESSAGES: Record<string, string> = {
   "unit_price must be greater than 0": "El precio unitario debe ser mayor que 0.",
   "tax code is required": "El código del impuesto es obligatorio.",
   "tax rate must be greater than or equal to 0": "La tarifa del impuesto no puede ser negativa.",
-  "tax kind must be DEBIT or CREDIT": "El tipo de impuesto debe ser débito o crédito.",
+  // Clave en minúsculas: la búsqueda normaliza el mensaje ("DEBIT or CREDIT" del servidor).
+  "tax kind must be debit or credit": "El tipo de impuesto debe ser débito o crédito.",
+  "tax code is repeated in the same item":
+    "Hay un código de impuesto repetido en la misma línea. Cada impuesto de una línea debe tener un código distinto.",
   // Idempotencia (ambos servicios)
   "idempotency request is still being processed":
     "La solicitud anterior aún se está procesando. Intenta nuevamente en unos segundos.",

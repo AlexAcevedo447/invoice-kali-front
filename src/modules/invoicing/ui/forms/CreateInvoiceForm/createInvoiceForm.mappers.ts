@@ -1,5 +1,20 @@
 import type { Invoice } from "@modules/invoicing/domain/entities/Invoice";
-import type { CreateInvoiceFormValues } from "@modules/invoicing/ui/forms/CreateInvoiceForm/createInvoiceForm.schema";
+import type { InvoiceItem } from "@modules/invoicing/domain/entities/InvoiceItem";
+import type { InvoiceTaxKind } from "@modules/invoicing/domain/entities/InvoiceTax";
+import { percentToRate, rateToPercent } from "@modules/invoicing/domain/value-objects/taxRate";
+import {
+  taxCodeKey,
+  type CreateInvoiceFormValues,
+  type InvoiceFormItem,
+  type InvoiceFormTax,
+} from "@modules/invoicing/ui/forms/CreateInvoiceForm/createInvoiceForm.schema";
+
+/** Impuesto tal como lo espera el servidor: tarifa como fracción (0.19 = 19 %). */
+export interface TaxCommand {
+  code: string;
+  kind: InvoiceTaxKind;
+  rate: number;
+}
 
 export const toIsoOrUndefined = (value?: string): string | undefined => {
   if (!value) return undefined;
@@ -20,25 +35,29 @@ export const toDateTimeLocalValue = (value?: Date | string | null): string => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
-// En pantalla la tasa se captura como porcentaje (19 = 19 %); el servicio de
-// facturación la espera como fracción (0.19), ver tax_calculator.go.
-export const percentToRate = (percent: number): number => Number((percent / 100).toFixed(6));
-const rateToPercent = (rate: number): number => Number((rate * 100).toFixed(4));
+/** Fila de impuesto nueva: sin código, sin tipo (el usuario lo elige) y sin tarifa. */
+export const createEmptyTax = (): InvoiceFormTax => ({ code: "", kind: "", rate: "" });
+
+/** Línea nueva: empieza SIN impuestos (no se inventa un IVA por defecto). */
+export const createEmptyItem = (): InvoiceFormItem => ({
+  itemId: "",
+  quantity: 1,
+  unitPrice: 0,
+  taxes: [],
+});
 
 export const getCreateInvoiceDefaultValues = (): CreateInvoiceFormValues => ({
   customerId: "",
   issueDate: "",
   dueDate: "",
-  items: [
-    {
-      itemId: "",
-      quantity: 1,
-      unitPrice: 0,
-      taxes: [{ code: "IVA", kind: "DEBIT", rate: 18 }],
-    },
-  ],
+  items: [createEmptyItem()],
 });
 
+/**
+ * Factura guardada → formulario. Se muestran TODOS los impuestos de cada línea,
+ * en el orden guardado, con la tarifa en % exacta. Una línea sin impuestos
+ * queda sin impuestos (no se le inventa un "IVA 0 %").
+ */
 export const mapInvoiceToCreateInvoiceFormValues = (
   invoice: Invoice,
 ): CreateInvoiceFormValues => ({
@@ -47,31 +66,68 @@ export const mapInvoiceToCreateInvoiceFormValues = (
   dueDate: toDateTimeLocalValue(invoice.dueDate),
   items:
     invoice.items.length > 0
-      ? invoice.items.map((item: Invoice["items"][number]) => ({
+      ? invoice.items.map((item) => ({
           lineId: String(item.id),
           itemId: item.itemId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          taxes:
-            item.taxes.length > 0
-              ? item.taxes.map((tax: (typeof item)["taxes"][number]) => ({
-                  code: tax.code,
-                  kind: tax.kind,
-                  rate: rateToPercent(tax.rate),
-                }))
-              : // Línea guardada sin impuestos: se muestra con tasa 0 para no
-                // agregar un impuesto que el usuario no puso al editar.
-                [{ code: "IVA", kind: "DEBIT", rate: 0 }],
+          taxes: item.taxes.map((tax) => ({
+            code: tax.code,
+            kind: tax.kind,
+            rate: rateToPercent(tax.rate),
+          })),
         }))
-      : [
-          {
-            itemId: "",
-            quantity: 1,
-            unitPrice: 0,
-            taxes: [{ code: "IVA", kind: "DEBIT", rate: 18 }],
-          },
-        ],
+      : [createEmptyItem()],
 });
+
+/**
+ * Impuestos del formulario (ya validados) → lista para el servidor. Se envía el
+ * código sin espacios exteriores (el servidor además lo pasa a mayúsculas) y la
+ * tarifa como fracción exacta.
+ */
+export const mapFormTaxesToCommand = (taxes: InvoiceFormTax[]): TaxCommand[] =>
+  taxes.map((tax) => {
+    if (tax.kind !== "DEBIT" && tax.kind !== "CREDIT") {
+      throw new Error("El tipo de impuesto debe ser débito o crédito.");
+    }
+    return { code: tax.code.trim(), kind: tax.kind, rate: percentToRate(tax.rate) };
+  });
+
+/** Forma comparable de una lista de impuestos (igual que la normaliza el servidor). */
+const normalizeTaxes = (taxes: TaxCommand[]): TaxCommand[] =>
+  taxes.map((tax) => ({ code: taxCodeKey(tax.code), kind: tax.kind, rate: tax.rate }));
+
+/** true si las dos listas tienen los mismos impuestos (código normalizado, tipo y tarifa exacta) en el mismo orden. */
+export const sameTaxes = (left: TaxCommand[], right: TaxCommand[]): boolean => {
+  const a = normalizeTaxes(left);
+  const b = normalizeTaxes(right);
+  return (
+    a.length === b.length &&
+    a.every((tax, index) => tax.code === b[index].code && tax.kind === b[index].kind && tax.rate === b[index].rate)
+  );
+};
+
+/**
+ * Cambio de una línea guardada para `PUT /invoice-items/:id`, o null si no
+ * cambió nada (cantidad, precio unitario y la lista COMPLETA de impuestos en
+ * orden). El PUT reemplaza la lista de impuestos, así que se envía completa:
+ * quitar un impuesto también es un cambio.
+ */
+export const buildInvoiceItemUpdate = (
+  before: InvoiceItem,
+  item: InvoiceFormItem,
+): { id: string; quantity: number; unitPrice: number; taxes: TaxCommand[] } | null => {
+  const taxes = mapFormTaxesToCommand(item.taxes);
+  const changed =
+    before.quantity !== item.quantity ||
+    before.unitPrice !== item.unitPrice ||
+    !sameTaxes(
+      before.taxes.map((tax) => ({ code: tax.code, kind: tax.kind, rate: tax.rate })),
+      taxes,
+    );
+  if (!changed) return null;
+  return { id: String(before.id), quantity: item.quantity, unitPrice: item.unitPrice, taxes };
+};
 
 export const mapCreateInvoiceFormValuesToCreateCommand = (
   values: CreateInvoiceFormValues,
@@ -83,11 +139,7 @@ export const mapCreateInvoiceFormValuesToCreateCommand = (
     itemId: item.itemId,
     quantity: item.quantity,
     unitPrice: item.unitPrice,
-    taxes: item.taxes.map((tax) => ({
-      code: tax.code,
-      kind: tax.kind,
-      rate: percentToRate(tax.rate),
-    })),
+    taxes: mapFormTaxesToCommand(item.taxes),
   })),
 });
 

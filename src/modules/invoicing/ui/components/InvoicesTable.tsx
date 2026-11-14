@@ -6,6 +6,7 @@ import {
 } from "@shared/ui/table/GenericTable";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 import type { InvoiceStatus } from "../constants/invoiceStatus";
+import { formatAmount } from "../constants/invoiceFormat";
 
 interface Invoice {
     id: string;
@@ -22,6 +23,8 @@ interface InvoicesTableProps {
     onEdit: (invoiceId: string) => void;
     onChangeStatus: (invoiceId: string) => void;
     onDelete: (invoiceId: string) => void;
+    /** Vista de solo lectura (invoices/read); sin ella no se muestra la acción "Ver". */
+    onView?: (invoiceId: string) => void;
     serverPagination?: ServerPagination;
 }
 
@@ -31,6 +34,7 @@ export const InvoicesTable = ({
     onEdit,
     onChangeStatus,
     onDelete,
+    onView,
     serverPagination,
 }: InvoicesTableProps) => {
     const columns: TableColumn<Invoice>[] = [
@@ -49,7 +53,7 @@ export const InvoicesTable = ({
             field: "amount",
             header: "Monto",
             sortable: true,
-            body: (row) => `$${row.amount.toFixed(2)}`,
+            body: (row) => formatAmount(row.amount),
         },
         {
             field: "status",
@@ -72,7 +76,21 @@ export const InvoicesTable = ({
         return label;
     };
 
+    // "Ver" es de solo lectura: disponible también en facturas pagadas o canceladas.
+    const viewAction: TableAction<Invoice>[] = onView
+        ? [
+              {
+                  label: "Ver",
+                  icon: "pi pi-eye",
+                  onClick: (row) => onView(row.id),
+                  severity: "secondary",
+                  cy: "invoice-view",
+              },
+          ]
+        : [];
+
     const actions: TableAction<Invoice>[] = [
+        ...viewAction,
         {
             label: "Editar",
             icon: "pi pi-pencil",

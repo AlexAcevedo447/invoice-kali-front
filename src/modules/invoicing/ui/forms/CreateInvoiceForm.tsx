@@ -1,32 +1,10 @@
-// Helper para acceder seguro a errores anidados de React Hook Form
-import type { FieldErrors } from "react-hook-form";
-import type { CreateInvoiceFormValues } from "@modules/invoicing/ui/forms/CreateInvoiceForm/createInvoiceForm.schema";
-
-function getErrorMessage(
-    errors: FieldErrors<CreateInvoiceFormValues>,
-    path: (string | number)[]
-): string | undefined {
-    let current: unknown = errors;
-    for (const key of path) {
-        if (typeof current !== "object" || current == null) return undefined;
-        current = (current as Record<string, unknown>)[key];
-    }
-    if (
-        typeof current === "object" &&
-        current !== null &&
-        "message" in current &&
-        typeof (current as { message?: unknown }).message === "string"
-    ) {
-        return (current as { message: string }).message;
-    }
-    return undefined;
-}
-
 import { FormActions } from "@shared/ui/forms/FormActions";
 import { FormField } from "@shared/ui/forms/FormField";
 import { SubmitButton } from "@shared/ui/forms/SubmitButton";
 import type { CreateInvoiceFormProps } from "@modules/invoicing/ui/forms/CreateInvoiceForm/createInvoiceForm.types";
 import { useCreateInvoiceForm } from "@modules/invoicing/ui/forms/CreateInvoiceForm/useCreateInvoiceForm";
+import { getErrorMessage } from "@modules/invoicing/ui/forms/CreateInvoiceForm/formErrors";
+import { InvoiceItemTaxesEditor } from "@modules/invoicing/ui/forms/CreateInvoiceForm/InvoiceItemTaxesEditor";
 import { Controller } from "react-hook-form";
 import { CatalogSelect, type CatalogOption } from "@modules/invoicing/ui/components/CatalogSelect";
 import { catalogApi } from "@modules/invoicing/infrastructure/catalog/catalogApi";
@@ -55,6 +33,7 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
         onSafeSubmit,
         appendItem,
         removeItem,
+        linesReadOnly,
     } = useCreateInvoiceForm(props);
     const { invoiceToEdit } = props;
     const customerOption: CatalogOption<Customer> | undefined = invoiceToEdit
@@ -136,10 +115,23 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                         type="button"
                         className="p-button p-component p-button-text"
                         onClick={appendItem}
+                        disabled={linesReadOnly}
+                        data-cy="invoice-item-add"
                     >
                         Add Item
                     </button>
                 </div>
+
+                {linesReadOnly ? (
+                    <p
+                        className="p-2 mt-0 mb-3 border-round surface-100 text-color-secondary"
+                        data-cy="invoice-items-readonly-note"
+                    >
+                        Para modificar líneas o impuestos de una factura existente necesitas el permiso Líneas
+                        de factura: gestionar (invoice-items/manage). Puedes cambiar el cliente y la fecha de
+                        vencimiento.
+                    </p>
+                ) : null}
 
                 {itemsArray.fields.map((field, index) => (
                     <section key={field.id} className="border-1 border-300 border-round p-3 mb-3">
@@ -149,7 +141,8 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                 type="button"
                                 className="p-button p-component p-button-text p-button-danger"
                                 onClick={() => removeItem(index)}
-                                disabled={itemsArray.fields.length === 1}
+                                disabled={linesReadOnly || itemsArray.fields.length === 1}
+                                data-cy={`invoice-item-${index}-remove`}
                             >
                                 Remove
                             </button>
@@ -217,6 +210,7 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                         type="number"
                                         min={1}
                                         className="p-inputtext p-component w-full"
+                                        disabled={linesReadOnly}
                                         {...form.register(`items.${index}.quantity`)}
                                     />
                                 </FormField>
@@ -234,64 +228,14 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                         min={0.01}
                                         step={0.01}
                                         className="p-inputtext p-component w-full"
+                                        disabled={linesReadOnly}
                                         {...form.register(`items.${index}.unitPrice`)}
                                     />
                                 </FormField>
                             </div>
                         </div>
 
-                        <h5 className="mb-2">Primary Tax</h5>
-                        <div className="grid align-items-end mb-2">
-                            <div className="col-12 md:col-4">
-                                <FormField
-                                    id={`items.${index}.taxes.0.code`}
-                                    label="Code"
-                                    required
-                                    error={getErrorMessage(form.formState.errors, ["items", index, "taxes", 0, "code"])}
-                                >
-                                    <input
-                                        id={`items.${index}.taxes.0.code`}
-                                        type="text"
-                                        className="p-inputtext p-component w-full"
-                                        {...form.register(`items.${index}.taxes.0.code`)}
-                                    />
-                                </FormField>
-                            </div>
-                            <div className="col-12 md:col-4">
-                                <FormField
-                                    id={`items.${index}.taxes.0.kind`}
-                                    label="Kind"
-                                    required
-                                    error={getErrorMessage(form.formState.errors, ["items", index, "taxes", 0, "kind"])}
-                                >
-                                    <select
-                                        id={`items.${index}.taxes.0.kind`}
-                                        className="p-inputtext p-component w-full"
-                                        {...form.register(`items.${index}.taxes.0.kind`)}
-                                    >
-                                        <option value="DEBIT">DEBIT</option>
-                                        <option value="CREDIT">CREDIT</option>
-                                    </select>
-                                </FormField>
-                            </div>
-                            <div className="col-12 md:col-4">
-                                <FormField
-                                    id={`items.${index}.taxes.0.rate`}
-                                    label="Rate (%)"
-                                    required
-                                    error={getErrorMessage(form.formState.errors, ["items", index, "taxes", 0, "rate"])}
-                                >
-                                    <input
-                                        id={`items.${index}.taxes.0.rate`}
-                                        type="number"
-                                        min={0}
-                                        step={0.01}
-                                        className="p-inputtext p-component w-full"
-                                        {...form.register(`items.${index}.taxes.0.rate`)}
-                                    />
-                                </FormField>
-                            </div>
-                        </div>
+                        <InvoiceItemTaxesEditor form={form} itemIndex={index} readOnly={linesReadOnly} />
                     </section>
                 ))}
 

@@ -2,26 +2,21 @@ import { useRef, useEffect, useState } from "react";
 import { useFieldArray } from "react-hook-form";
 import { useInvoicingStore } from "../../../../../app/state/invoicingStore";
 import type { InvoicingState } from "../../../../../app/state/invoicingStore";
+import { useAuthSessionStore, type AuthSessionState } from "../../../../../app/state/authSessionStore";
+import { canManageInvoiceItems } from "../../../../../app/routing/access";
 import { useZodForm } from "../../../../../shared/ui/forms/useZodForm";
 import type { CreateInvoiceFormProps } from "./createInvoiceForm.types";
 import { createInvoiceSchema } from "./createInvoiceForm.schema";
 import {
+  buildInvoiceItemUpdate,
+  createEmptyItem,
   getCreateInvoiceDefaultValues,
+  mapFormTaxesToCommand,
   mapInvoiceToCreateInvoiceFormValues,
   mapCreateInvoiceFormValuesToCreateCommand,
   mapCreateInvoiceFormValuesToUpdateCommand,
-  percentToRate,
 } from "./createInvoiceForm.mappers";
 import type { CreateInvoiceFormValues } from "./createInvoiceForm.schema";
-
-type FormItem = CreateInvoiceFormValues["items"][number];
-
-const toItemTaxes = (item: FormItem) =>
-  item.taxes.map((tax) => ({
-    code: tax.code,
-    kind: tax.kind,
-    rate: percentToRate(tax.rate),
-  }));
 
 export function useCreateInvoiceForm({
   invoiceToEdit = null,
@@ -53,9 +48,14 @@ export function useCreateInvoiceForm({
   // Líneas ya borradas en este modal: un reintento tras un fallo parcial no las repite.
   const deletedLinesRef = useRef<Set<string>>(new Set());
   const isEditMode = Boolean(invoiceToEdit);
+  const permissions = useAuthSessionStore((s: AuthSessionState) => s.permissions);
+  // D4-05: las líneas de una factura existente se guardan con /invoice-items,
+  // que exige invoice-items/manage. Sin ese permiso solo se edita la cabecera
+  // (invoices/manage). Crear una factura con sus líneas solo exige invoices/manage.
+  const linesReadOnly = isEditMode && !canManageInvoiceItems(permissions);
   const [persistError, setPersistError] = useState<string | null>(null);
 
-  const form = useZodForm(createInvoiceSchema, {
+  const form = useZodForm<CreateInvoiceFormValues>(createInvoiceSchema, {
     defaultValues: getCreateInvoiceDefaultValues(),
   });
 
@@ -73,9 +73,7 @@ export function useCreateInvoiceForm({
     form.reset(mapInvoiceToCreateInvoiceFormValues(invoiceToEdit));
   }, [form, invoiceToEdit]);
 
-  const submitValues = async (
-    values: ReturnType<typeof getCreateInvoiceDefaultValues>,
-  ) => {
+  const submitValues = async (values: CreateInvoiceFormValues) => {
     clearError();
     setPersistError(null);
     if (isEditMode && invoiceToEdit) {
@@ -96,6 +94,12 @@ export function useCreateInvoiceForm({
         return;
       }
 
+      // Sin invoice-items/manage las líneas son de solo lectura: no se tocan.
+      if (linesReadOnly) {
+        onSuccess?.();
+        return;
+      }
+
       // Líneas: se aplican las diferencias con los endpoints de invoice-items.
       const original = new Map(
         invoiceToEdit.items.map((item) => [String(item.id), item]),
@@ -104,14 +108,13 @@ export function useCreateInvoiceForm({
         values.items.map((item) => item.lineId).filter(Boolean),
       );
       for (const [index, item] of values.items.entries()) {
-        const taxes = toItemTaxes(item);
         if (!item.lineId) {
           const created = await createInvoiceItem({
             invoiceId: invoiceToEdit.id,
             itemId: item.itemId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
-            taxes,
+            taxes: mapFormTaxesToCommand(item.taxes),
           });
           if (!created) return;
           // Marca la línea como guardada para no duplicarla si se reintenta.
@@ -120,31 +123,11 @@ export function useCreateInvoiceForm({
         }
         const before = original.get(item.lineId);
         if (!before) continue;
-        // El formulario solo muestra el impuesto principal de cada línea:
-        // se compara ese impuesto y se conservan los adicionales al guardar.
-        const [formTax] = taxes;
-        const beforeTax = before.taxes[0] ?? { code: "IVA", kind: "DEBIT", rate: 0 };
-        const changed =
-          before.quantity !== item.quantity ||
-          before.unitPrice !== item.unitPrice ||
-          beforeTax.code !== formTax.code ||
-          beforeTax.kind !== formTax.kind ||
-          beforeTax.rate !== formTax.rate;
-        if (changed) {
-          const keepNoTaxes = before.taxes.length === 0 && formTax.rate === 0;
-          const updated = await updateInvoiceItem({
-            id: item.lineId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            taxes: keepNoTaxes
-              ? []
-              : [
-                  formTax,
-                  ...before.taxes
-                    .slice(1)
-                    .map((t) => ({ code: t.code, kind: t.kind, rate: t.rate })),
-                ],
-          });
+        // Solo se envía PUT si cambió la cantidad, el precio o la lista de
+        // impuestos; el PUT reemplaza la lista completa de impuestos.
+        const update = buildInvoiceItemUpdate(before, item);
+        if (update) {
+          const updated = await updateInvoiceItem(update);
           if (!updated) return;
         }
       }
@@ -177,15 +160,15 @@ export function useCreateInvoiceForm({
       });
   };
 
-  const appendItem = () =>
-    itemsArray.append({
-      itemId: "",
-      quantity: 1,
-      unitPrice: 0,
-      taxes: [{ code: "IVA", kind: "DEBIT", rate: 18 }],
-    });
+  const appendItem = () => {
+    if (linesReadOnly) return;
+    itemsArray.append(createEmptyItem());
+  };
 
-  const removeItem = (index: number) => itemsArray.remove(index);
+  const removeItem = (index: number) => {
+    if (linesReadOnly) return;
+    itemsArray.remove(index);
+  };
 
   return {
     form,
@@ -196,5 +179,6 @@ export function useCreateInvoiceForm({
     onSafeSubmit,
     appendItem,
     removeItem,
+    linesReadOnly,
   };
 }

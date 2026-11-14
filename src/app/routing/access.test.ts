@@ -3,6 +3,8 @@ import {
     canAccessAdminModule,
     canAccessInvoicingModule,
     canManageUsers,
+    canManageInvoiceItems,
+    canReadInvoices,
     canReadUsers,
     resolveHomeRoute,
     canManageAssignments,
@@ -196,5 +198,35 @@ describe("resolveHomeRoute", () => {
 
     it("sin permisos no hay inicio", () => {
         expect(resolveHomeRoute(["admin"], [])).toBeNull();
+    });
+});
+
+describe("canManageInvoiceItems (D4-05: líneas e impuestos de una factura existente)", () => {
+    it("permite con invoice-items/manage y comodines", () => {
+        expect(canManageInvoiceItems([perm("invoice-items", "manage")])).toBe(true);
+        expect(canManageInvoiceItems([perm(" Invoice-Items ", " MANAGE ")])).toBe(true);
+        expect(canManageInvoiceItems([perm("invoice-items", "*")])).toBe(true);
+        expect(canManageInvoiceItems([perm("*", "manage")])).toBe(true);
+        expect(canManageInvoiceItems([perm("*", "*")])).toBe(true);
+    });
+
+    it("invoices/manage no basta para editar líneas existentes", () => {
+        expect(canManageInvoiceItems([perm("invoices", "manage")])).toBe(false);
+    });
+
+    it("invoice-items/read no permite gestionar", () => {
+        expect(canManageInvoiceItems([perm("invoice-items", "read")])).toBe(false);
+        expect(canManageInvoiceItems([])).toBe(false);
+    });
+});
+
+describe("canReadInvoices (vista de solo lectura de la factura)", () => {
+    it("permite con invoices/read o invoices/manage", () => {
+        expect(canReadInvoices([perm("invoices", "read")])).toBe(true);
+        expect(canReadInvoices([perm("invoices", "manage")])).toBe(true);
+    });
+
+    it("no la concede invoice-items/manage", () => {
+        expect(canReadInvoices([perm("invoice-items", "manage")])).toBe(false);
     });
 });

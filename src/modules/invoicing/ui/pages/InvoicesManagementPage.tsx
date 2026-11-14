@@ -8,6 +8,10 @@ import { InvoicesTable } from "@modules/invoicing/ui/components/InvoicesTable";
 import { InvoiceStateChangeDialog } from "@modules/invoicing/ui/components/InvoiceStateChangeDialog";
 import { InvoiceDeleteConfirmDialog } from "@modules/invoicing/ui/components/InvoiceDeleteConfirmDialog";
 import type { InvoiceStatus } from "@modules/invoicing/ui/constants/invoiceStatus";
+import { mapDomainStatusToUI } from "@modules/invoicing/ui/constants/invoiceFormat";
+import { InvoiceViewDialog } from "@modules/invoicing/ui/components/InvoiceViewDialog";
+import { useAuthSessionStore, type AuthSessionState } from "@app/state/authSessionStore";
+import { canReadInvoices } from "@app/routing/access";
 
 interface InvoiceTableData {
     id: string;
@@ -18,15 +22,6 @@ interface InvoiceTableData {
     dueDate: string;
 }
 
-const mapDomainStatusToUI = (status: string): InvoiceStatus => {
-    const statusMap: { [key: string]: InvoiceStatus } = {
-        "PENDING": "pending",
-        "PAID": "paid",
-        "CANCELED": "cancelled",
-    };
-    return (statusMap[status] ?? "draft") as InvoiceStatus;
-};
-
 export const InvoicesManagementPage = () => {
     const toastRef = useRef<Toast>(null);
     const hasLoadedRef = useRef(false);
@@ -36,6 +31,9 @@ export const InvoicesManagementPage = () => {
     const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(
         null
     );
+    const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
+    const permissions = useAuthSessionStore((s: AuthSessionState) => s.permissions);
+    const canView = canReadInvoices(permissions);
 
     const {
         invoices,
@@ -196,6 +194,7 @@ export const InvoicesManagementPage = () => {
                     onEdit={handleEdit}
                     onChangeStatus={handleChangeStatus}
                     onDelete={handleDelete}
+                    onView={canView ? setViewInvoiceId : undefined}
                     serverPagination={{
                         totalRecords: total,
                         first: (page - 1) * pageSize,
@@ -212,6 +211,8 @@ export const InvoicesManagementPage = () => {
                 invoiceToEdit={selectedInvoiceEntity}
                 onSaved={handleSaved}
             />
+
+            <InvoiceViewDialog invoiceId={viewInvoiceId} onClose={() => setViewInvoiceId(null)} />
 
             {selectedInvoice && (
                 <>

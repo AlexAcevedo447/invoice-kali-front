@@ -22,6 +22,11 @@ export interface InvoicingState {
   actions: {
     loadInvoices(page?: number, pageSize?: number): Promise<void>;
     loadInvoice(id: string): Promise<void>;
+    /**
+     * GET /invoices/:id sin tocar el estado global (isLoading, error ni la
+     * factura seleccionada). Lanza el error para que la vista lo muestre.
+     */
+    fetchInvoice(id: string): Promise<Invoice>;
     createInvoice(command: {
       customerId: string;
       issueDate?: string;
@@ -120,6 +125,13 @@ export const useInvoicingStore = create<InvoicingState>((set, get) => ({
       } catch (error) {
         set({ isLoading: false, error: getErrorMessage(error) });
       }
+    },
+
+    async fetchInvoice(id) {
+      if (!invoicingService) {
+        throw new Error("InvoicingService is not configured");
+      }
+      return invoicingService.invoices.getById({ id });
     },
 
     async createInvoice(command) {
