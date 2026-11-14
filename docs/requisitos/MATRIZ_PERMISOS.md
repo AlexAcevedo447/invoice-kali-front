@@ -11,7 +11,7 @@ guardan normalizados: sin espacios a los lados y en minúsculas.
 | Recurso | Acciones | Operaciones que cubre |
 | --- | --- | --- |
 | `tenants` | `manage` | Administración de empresas (solo en la empresa de plataforma) |
-| `users` | `read`, `manage` | Usuarios (exigencia en el servidor: incremento 3) |
+| `users` | `read`, `manage` | Usuarios |
 | `roles` | `read`, `manage` | Roles |
 | `permissions` | `read`, `manage` | Permisos |
 | `rbac` | `manage` | Asignaciones usuario↔rol y rol↔permiso; consultar accesos de otros usuarios |
@@ -32,9 +32,9 @@ guardan normalizados: sin espacios a los lados y en minúsculas.
 
 | Operación | Permiso |
 | --- | --- |
-| `GET /roles`, `GET /roles/:id`, `GET /rbac/roles/permissions?role_id=` | `roles/read` |
+| `GET /roles`, `GET /roles/:id`, `GET /rbac/roles/permissions?role_id=` | `roles/read` **o** `rbac/manage` (para elegir qué asignar) |
 | `POST /roles`, `PUT /roles/:id`, `DELETE /roles/:id` | `roles/manage` |
-| `GET /permissions`, `GET /permissions/:id` | `permissions/read` |
+| `GET /permissions`, `GET /permissions/:id` | `permissions/read` **o** `rbac/manage` |
 | `POST /permissions`, `PUT /permissions/:id`, `DELETE /permissions/:id` | `permissions/manage` |
 | `POST /rbac/users/roles/assign`, `POST /rbac/users/roles/remove` | `rbac/manage` + no escalar (abajo) |
 | `POST /rbac/roles/permissions/assign`, `POST /rbac/roles/permissions/remove` | `rbac/manage` + no escalar |
@@ -42,7 +42,12 @@ guardan normalizados: sin espacios a los lados y en minúsculas.
 | `POST /auth/authorize` | `user_id` propio: solo autenticación. Otro usuario: `rbac/manage` |
 | `GET /auth/session` | Autenticación (devuelve los permisos efectivos del propio usuario) |
 | `/tenants/*` | `tenants/manage` en la empresa de plataforma (incremento 1) |
-| `/users/*` | Sin cambio en este incremento (incremento 3) |
+| `GET /users` | `users/read` **o** `rbac/manage` (para elegir a quién asignar) |
+| `GET /users/by-email` | `users/read` |
+| `GET /users/:id` | Propio usuario: solo autenticación. Otro: `users/read` |
+| `POST /users` | `users/manage` |
+| `PUT /users/:id` | `users/manage` + cubrir los permisos efectivos del usuario objetivo (uno mismo: permitido) |
+| `DELETE /users/:id` | `users/manage` + cubrir sus permisos; **nunca el propio usuario** (`409 you cannot delete your own user`) |
 
 ### kali-invoice-service
 
@@ -60,6 +65,14 @@ guardan normalizados: sin espacios a los lados y en minúsculas.
 
 Facturación obtiene los permisos efectivos del usuario de `GET /auth/session` de auth (el mismo
 token), con caché por usuario de `TENANT_STATUS_CACHE_SECONDS`.
+
+## Navegación de la interfaz
+
+Cada permiso lleva a su funcionalidad sin exigir permisos ajenos: `users/read` → Usuarios;
+`roles/read` o `rbac/manage` → Roles (con `rbac/manage`, la gestión de asignaciones);
+`permissions/read` → Permisos; `tenants/manage` en la plataforma → Empresas; permisos de
+facturación → Facturas, Clientes o Productos. Sin ningún permiso, la sesión es válida y se
+muestra "Sin acceso a módulos" con opción de cerrar sesión.
 
 ## Reglas contra escalamiento de privilegios
 
@@ -85,6 +98,9 @@ token), con caché por usuario de `TENANT_STATUS_CACHE_SECONDS`.
 | Modificar o eliminar el rol `admin` sembrado de la plataforma, o quitarle su permiso | `409 protected administrative role` |
 | Modificar o eliminar el permiso `*/*` de la plataforma | `409 protected administrative permission` |
 | Una operación que deje a la empresa sin **administrador efectivo** | `409 operation would leave the tenant without an administrator` |
+| Editar o eliminar a otro usuario sin cubrir sus permisos efectivos | `403 cannot manage a user with privileges you do not have` |
+| Eliminar un usuario con roles asignados (sin cascada) | `409 user has roles assigned` |
+| Usuario eliminado | Sus tokens: `401 invalid access token` (auth inmediato; facturación ≤ 5 s) |
 
 **Administrador efectivo** de una empresa: usuario de esa empresa cuyos permisos efectivos
 cubren `roles/manage`, `permissions/manage` y `rbac/manage`. La regla solo bloquea si antes
@@ -150,6 +166,5 @@ arranque no registra avisos `rbac integrity`.
 
 ## Pendientes
 
-- Exigir `users/read` y `users/manage` en el servidor (incremento 3).
 - Permiso de solo lectura de empresas (`tenants/read`).
 - Administrar desde la interfaz el RBAC de otras empresas.
