@@ -8,7 +8,6 @@ import { FormActions } from "../../../../shared/ui/forms/FormActions";
 import { FormField } from "../../../../shared/ui/forms/FormField";
 import { SubmitButton } from "../../../../shared/ui/forms/SubmitButton";
 import { useZodForm } from "../../../../shared/ui/forms/useZodForm";
-import { resolveHomeRoute } from "@app/routing/access";
 
 // El usuario nunca escribe el identificador técnico de su empresa: el servidor
 // la resuelve a partir de la cuenta. Solo si el mismo correo y contraseña
@@ -30,7 +29,6 @@ export const LoginForm = () => {
     const isLoading = useAuthSessionStore((state: AuthSessionState) => state.isLoading);
     const login = useAuthSessionStore((state: AuthSessionState) => state.actions.login);
     const clearError = useAuthSessionStore((state: AuthSessionState) => state.actions.clearError);
-    const logout = useAuthSessionStore((state: AuthSessionState) => state.actions.logout);
 
     const form = useZodForm<LoginFormValues>(loginSchema, {
         defaultValues: {
@@ -53,19 +51,9 @@ export const LoginForm = () => {
             ...(needsCompanyCode && tenantCode ? { tenantCode } : {}),
         });
         if (result.success) {
-            // Un usuario sin roles/permisos reconocidos no puede usar ningún módulo:
-            // se informa el motivo y no se deja una sesión abierta sin salida.
-            const { roles, permissions } = useAuthSessionStore.getState();
-            if (!resolveHomeRoute(roles, permissions)) {
-                logout();
-                show({
-                    severity: "error",
-                    summary: "Acceso denegado",
-                    detail: "Tu usuario no tiene permisos asignados para ingresar.",
-                    life: 5000,
-                });
-                return;
-            }
+            // Credenciales y empresa válidas: la sesión se abre aunque no tenga
+            // permisos; en ese caso LoginPage lleva a "Sin acceso a módulos"
+            // (no es un error de inicio de sesión).
             show({
                 severity: "success",
                 summary: "Inicio de sesión exitoso",

@@ -44,9 +44,18 @@ const KNOWN_MESSAGES: Record<string, string> = {
     "La operación dejaría a la empresa sin ningún administrador. Asigna antes el acceso administrativo a otro usuario.",
   "unknown permission resource": "El recurso no está en el catálogo de permisos.",
   "unknown permission action": "La acción no es válida para ese recurso.",
-  // Usuarios
+  // Usuarios (incremento 3)
   "a user with this email already exists for this tenant":
     "Ya existe un usuario registrado con este correo electrónico.",
+  "cannot manage a user with privileges you do not have":
+    "No puedes editar ni eliminar a un usuario con permisos que tú no tienes.",
+  "you cannot delete your own user":
+    "No puedes eliminar tu propio usuario. Otro administrador autorizado puede hacerlo.",
+  "user has roles assigned":
+    "El usuario tiene roles asignados. Quítaselos primero en Roles → \"Asignar roles a usuario\" y vuelve a intentarlo.",
+  "email is required": "El correo es obligatorio.",
+  "password is required": "La contraseña es obligatoria.",
+  "user_id is required": "Falta indicar el usuario.",
   "password must have at least 12 characters":
     "La contraseña debe tener al menos 12 caracteres.",
   "password must include at least one uppercase letter":

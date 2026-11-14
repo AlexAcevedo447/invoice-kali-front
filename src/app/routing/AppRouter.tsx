@@ -11,6 +11,7 @@ export const HomeRedirect = () => {
     const isLoading = useAuthSessionStore((s: AuthSessionState) => s.isLoading);
     const roles = useAuthSessionStore((s: AuthSessionState) => s.roles);
     const permissions = useAuthSessionStore((s: AuthSessionState) => s.permissions);
+    const isPlatformTenant = useAuthSessionStore((s: AuthSessionState) => s.isPlatformTenant);
 
     if (isLoading) {
         return <main>Cargando...</main>;
@@ -20,10 +21,11 @@ export const HomeRedirect = () => {
         return <Navigate to={ROUTES.login} replace />;
     }
 
-    const homeRoute = resolveHomeRoute(roles, permissions);
+    const homeRoute = resolveHomeRoute(roles, permissions, isPlatformTenant);
     if (homeRoute) {
         return <Navigate to={homeRoute} replace />;
     }
 
-    return <main>Tu usuario no tiene permisos asignados para acceder a módulos.</main>;
+    // Sesión válida sin módulos: pantalla propia (no es un error de login).
+    return <Navigate to={ROUTES.noAccess} replace />;
 };

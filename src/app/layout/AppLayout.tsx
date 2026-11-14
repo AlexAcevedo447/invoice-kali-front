@@ -6,24 +6,29 @@ import type { AuthSessionState } from "../state/authSessionStore";
 import { useInvoicingStore } from "../state/invoicingStore";
 import { ROUTES } from "../routing/routes";
 import {
-    canAccessAdminModule,
-    canAccessInvoicingModule,
     canManageTenants,
+    canReadCustomers,
+    canReadInvoices,
     canReadPermissions,
+    canReadProducts,
     canReadRoles,
+    canManageAssignments,
+    canReadUsers,
 } from "../routing/access";
 
 /**
  * Barra superior de la zona autenticada. Solo enlaza módulos con funcionalidad
- * real y solo si la sesión tiene permiso para verlos (Roles: roles/read;
- * Permisos: permissions/read; Empresas: solo la empresa de plataforma).
+ * real y solo si los permisos efectivos de la sesión permiten verlos
+ * (Facturas: invoices/read; Clientes: customers/read; Productos: products/read;
+ * Usuarios: users/read; Roles: roles/read; Permisos: permissions/read;
+ * Empresas: tenants/manage en la empresa de plataforma). El nombre del rol no
+ * cuenta. Los permisos se leen al iniciar sesión.
  */
 export const AppLayout = () => {
     const navigate = useNavigate();
     const email = useAuthSessionStore((s: AuthSessionState) => s.email);
     const tenantName = useAuthSessionStore((s: AuthSessionState) => s.tenantName);
     const isPlatformTenant = useAuthSessionStore((s: AuthSessionState) => s.isPlatformTenant);
-    const roles = useAuthSessionStore((s: AuthSessionState) => s.roles);
     const permissions = useAuthSessionStore((s: AuthSessionState) => s.permissions);
     const logout = useAuthSessionStore((s: AuthSessionState) => s.actions.logout);
     const expireSession = useAuthSessionStore((s: AuthSessionState) => s.actions.expireSession);
@@ -43,15 +48,20 @@ export const AppLayout = () => {
     }, [expiresAt, accessToken, expireSession]);
 
     const links: Array<{ to: string; label: string; cy: string }> = [];
-    if (canAccessInvoicingModule(roles, permissions)) {
+    if (canReadInvoices(permissions)) {
         links.push({ to: ROUTES.invoicing.invoices, label: "Facturas", cy: "nav-invoices" });
+    }
+    if (canReadCustomers(permissions)) {
         links.push({ to: ROUTES.invoicing.customers, label: "Clientes", cy: "nav-customers" });
+    }
+    if (canReadProducts(permissions)) {
         links.push({ to: ROUTES.invoicing.products, label: "Productos", cy: "nav-products" });
     }
-    if (canAccessAdminModule(roles, permissions)) {
+    if (canReadUsers(permissions)) {
         links.push({ to: ROUTES.admin.users, label: "Usuarios", cy: "nav-users" });
     }
-    if (canReadRoles(permissions)) {
+    // rbac/manage llega a las asignaciones (en Roles) sin exigir roles/read.
+    if (canReadRoles(permissions) || canManageAssignments(permissions)) {
         links.push({ to: ROUTES.admin.roles, label: "Roles", cy: "nav-roles" });
     }
     if (canReadPermissions(permissions)) {

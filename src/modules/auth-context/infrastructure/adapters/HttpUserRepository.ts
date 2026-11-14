@@ -13,6 +13,25 @@ import type { HttpClient } from "../../../../shared/infrastructure/http/HttpClie
 import { httpCore } from "../../../../shared/infrastructure/http/httpCore";
 import { toIdempotentProtectedConfig, toProtectedConfig } from "./httpConfig";
 
+type CreateUserBody = {
+  identification_number: string;
+  username: string;
+  email: string;
+  password: string;
+};
+
+type UpdateUserBody = {
+  identification_number: string;
+  username: string;
+  email: string;
+  password?: string;
+};
+
+/**
+ * Usuarios de la empresa de la sesión. El servidor toma la empresa del token,
+ * por eso no se envía tenant_id. El mapper descarta cualquier campo de
+ * contraseña que pudiera llegar en la respuesta.
+ */
 export class HttpUserRepository implements UserRepository {
   private readonly httpClient: HttpClient;
 
@@ -22,27 +41,16 @@ export class HttpUserRepository implements UserRepository {
 
   async create(
     command: {
-      tenantId: string;
       identificationNumber: string;
       username: string;
       email: string;
       password: string;
     },
     options: IdempotentProtectedRequestOptions,
-  ): Promise<void> {
-    await this.httpClient.post<
-      void,
-      {
-        tenant_id: string;
-        identification_number: string;
-        username: string;
-        email: string;
-        password: string;
-      }
-    >(
+  ): Promise<User> {
+    const response = await this.httpClient.post<ApiUser, CreateUserBody>(
       AuthContextEndpoints.users.create,
       {
-        tenant_id: command.tenantId,
         identification_number: command.identificationNumber,
         username: command.username,
         email: command.email,
@@ -50,26 +58,25 @@ export class HttpUserRepository implements UserRepository {
       },
       toIdempotentProtectedConfig(options),
     );
+
+    return mapUserApiToDomain(response);
   }
 
-  async list(
-    query: { tenantId: string },
-    options: ProtectedRequestOptions,
-  ): Promise<User[]> {
-    const response = await this.httpClient.get<ApiUser[]>(
-      AuthContextEndpoints.users.list(query.tenantId),
+  async list(options: ProtectedRequestOptions): Promise<User[]> {
+    const response = await this.httpClient.get<ApiUser[] | null>(
+      AuthContextEndpoints.users.list,
       toProtectedConfig(options),
     );
 
-    return response.map(mapUserApiToDomain);
+    return (response ?? []).map(mapUserApiToDomain);
   }
 
   async getById(
-    query: { userId: string; tenantId: string },
+    query: { userId: string },
     options: ProtectedRequestOptions,
   ): Promise<User> {
     const response = await this.httpClient.get<ApiUser>(
-      AuthContextEndpoints.users.getById(query.userId, query.tenantId),
+      AuthContextEndpoints.users.getById(query.userId),
       toProtectedConfig(options),
     );
 
@@ -77,11 +84,11 @@ export class HttpUserRepository implements UserRepository {
   }
 
   async getByEmail(
-    query: { tenantId: string; email: string },
+    query: { email: string },
     options: ProtectedRequestOptions,
   ): Promise<User> {
     const response = await this.httpClient.get<ApiUser>(
-      AuthContextEndpoints.users.byEmail(query.tenantId, query.email),
+      AuthContextEndpoints.users.byEmail(query.email),
       toProtectedConfig(options),
     );
 
@@ -91,42 +98,36 @@ export class HttpUserRepository implements UserRepository {
   async update(
     command: {
       userId: string;
-      tenantId: string;
       identificationNumber: string;
       username: string;
       email: string;
-      password: string;
+      password?: string;
     },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void> {
-    await this.httpClient.put<
-      void,
-      {
-        tenant_id: string;
-        identification_number: string;
-        username: string;
-        email: string;
-        password: string;
-      }
-    >(
+    const body: UpdateUserBody = {
+      identification_number: command.identificationNumber,
+      username: command.username,
+      email: command.email,
+    };
+    // Contraseña vacía u omitida: no se envía y el servidor conserva la actual.
+    if (command.password && command.password.trim().length > 0) {
+      body.password = command.password;
+    }
+
+    await this.httpClient.put<void, UpdateUserBody>(
       AuthContextEndpoints.users.update(command.userId),
-      {
-        tenant_id: command.tenantId,
-        identification_number: command.identificationNumber,
-        username: command.username,
-        email: command.email,
-        password: command.password,
-      },
+      body,
       toIdempotentProtectedConfig(options),
     );
   }
 
   async delete(
-    command: { userId: string; tenantId: string },
+    command: { userId: string },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void> {
     await this.httpClient.delete<void>(
-      AuthContextEndpoints.users.delete(command.userId, command.tenantId),
+      AuthContextEndpoints.users.delete(command.userId),
       toIdempotentProtectedConfig(options),
     );
   }

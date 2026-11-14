@@ -7,10 +7,11 @@ import {
     canAccessInvoicingModule,
 } from "./access";
 import { HomeRedirect } from "./AppRouter";
+import { NoAccessPage } from "./NoAccessPage";
 
 const moduleRoutes: RouteObject[] = [
     {
-        // Requiere rol "admin" o permisos de administración.
+        // Requiere permisos de administración (no basta el nombre del rol).
         Component: () => <PermissionRoute canAccess={canAccessAdminModule} />,
         children: [
             {
@@ -23,7 +24,7 @@ const moduleRoutes: RouteObject[] = [
         ],
     },
     {
-        // Requiere rol "invoicing" o permisos de facturación.
+        // Requiere permisos de facturación (no basta el nombre del rol).
         Component: () => <PermissionRoute canAccess={canAccessInvoicingModule} />,
         children: [
             {
@@ -52,6 +53,11 @@ export const router = createBrowserRouter([
             {
                 index: true,
                 element: <HomeRedirect />,
+            },
+            {
+                // Sesión válida sin permisos sobre ningún módulo (no exige permisos).
+                path: "sin-acceso",
+                element: <NoAccessPage />,
             },
             ...moduleRoutes,
         ],

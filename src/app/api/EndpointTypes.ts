@@ -21,11 +21,11 @@ export interface AuthEndpointModule {
 // User endpoints
 export interface UserEndpointsType {
   create: string;
-  byEmail: (tenantId: string, email: string) => string;
-  list: (tenantId: string) => string;
-  getById: (userId: string, tenantId: string) => string;
+  byEmail: (email: string) => string;
+  list: string;
+  getById: (userId: string) => string;
   update: (userId: string) => string;
-  delete: (userId: string, tenantId: string) => string;
+  delete: (userId: string) => string;
 }
 
 export interface UserEndpointModule {

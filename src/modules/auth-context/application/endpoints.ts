@@ -7,17 +7,15 @@ export const AuthContextEndpoints = {
     login: "/api/v1/auth/login",
     authorize: "/api/v1/auth/authorize",
   },
+  // Usuarios: la empresa la toma el servidor del token (no se envía tenant_id).
   users: {
     create: "/api/v1/users",
-    byEmail: (tenantId: string, email: string) =>
-      `/api/v1/users/by-email?tenant_id=${encodeURIComponent(tenantId)}&email=${encodeURIComponent(email)}`,
-    list: (tenantId: string) =>
-      `/api/v1/users?tenant_id=${encodeURIComponent(tenantId)}`,
-    getById: (userId: string, tenantId: string) =>
-      `/api/v1/users/${encodeURIComponent(userId)}?tenant_id=${encodeURIComponent(tenantId)}`,
+    byEmail: (email: string) =>
+      `/api/v1/users/by-email?email=${encodeURIComponent(email)}`,
+    list: "/api/v1/users",
+    getById: (userId: string) => `/api/v1/users/${encodeURIComponent(userId)}`,
     update: (userId: string) => `/api/v1/users/${encodeURIComponent(userId)}`,
-    delete: (userId: string, tenantId: string) =>
-      `/api/v1/users/${encodeURIComponent(userId)}?tenant_id=${encodeURIComponent(tenantId)}`,
+    delete: (userId: string) => `/api/v1/users/${encodeURIComponent(userId)}`,
   },
   tenants: {
     create: "/api/v1/tenants",

@@ -5,7 +5,7 @@ import { ROUTES } from "./routes";
 import type { AuthSession } from "../../modules/auth-context/domain/entities/AuthSession";
 
 interface PermissionRouteProps {
-    canAccess: (roles: string[], permissions: AuthSession["permissions"]) => boolean;
+    canAccess: (roles: string[], permissions: AuthSession["permissions"], isPlatformTenant: boolean) => boolean;
     deniedMessage?: string;
 }
 
@@ -14,6 +14,7 @@ export const PermissionRoute = ({ canAccess, deniedMessage }: PermissionRoutePro
     const status = useAuthSessionStore((s: AuthSessionState) => s.status);
     const roles = useAuthSessionStore((s: AuthSessionState) => s.roles);
     const permissions = useAuthSessionStore((s: AuthSessionState) => s.permissions);
+    const isPlatformTenant = useAuthSessionStore((s: AuthSessionState) => s.isPlatformTenant);
 
     if (isLoading) {
         return <main>Cargando...</main>;
@@ -23,7 +24,7 @@ export const PermissionRoute = ({ canAccess, deniedMessage }: PermissionRoutePro
         return <Navigate to={ROUTES.login} replace />;
     }
 
-    if (!canAccess(roles, permissions)) {
+    if (!canAccess(roles, permissions, isPlatformTenant)) {
         return <main>{deniedMessage ?? "Tu usuario no tiene permisos para esta sección."}</main>;
     }
 

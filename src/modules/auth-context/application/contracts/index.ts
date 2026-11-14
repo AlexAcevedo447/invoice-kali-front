@@ -13,7 +13,6 @@ export type {
 
 export type {
   CreateUserCommand,
-  ListUsersQuery,
   GetUserByIdQuery,
   GetUserByEmailQuery,
   UpdateUserCommand,

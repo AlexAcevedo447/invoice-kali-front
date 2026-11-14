@@ -5,7 +5,7 @@ import { Button } from "primereact/button";
 import { useApplication } from "@app/application/useApplication";
 import { useAuthSessionStore, type AuthSessionState } from "@app/state/authSessionStore";
 import { createIdempotencyKey } from "@app/state/createIdempotencyKey";
-import { canManageAssignments, canManageRoles, canReadPermissions, canReadRoles } from "@app/routing/access";
+import { canManageAssignments, canManageRoles, canReadPermissions, canReadRoles, canReadUsers } from "@app/routing/access";
 import type { Permission } from "@modules/auth-context/domain/entities/Permission";
 import type { Role } from "@modules/auth-context/domain/entities/Role";
 import type { User } from "@modules/auth-context/domain/entities/User";
@@ -13,7 +13,6 @@ import type { PermissionId } from "@modules/auth-context/domain/value-objects/Pe
 import { toPermissionId } from "@modules/auth-context/domain/value-objects/PermissionId";
 import type { RoleId } from "@modules/auth-context/domain/value-objects/RoleId";
 import { toRoleId } from "@modules/auth-context/domain/value-objects/RoleId";
-import { toTenantId } from "@modules/auth-context/domain/value-objects/TenantId";
 import { toUserId } from "@modules/auth-context/domain/value-objects/UserId";
 import { FormField } from "@shared/ui/forms/FormField";
 import { GenericTable, type TableAction, type TableColumn } from "@shared/ui/table/GenericTable";
@@ -42,12 +41,15 @@ export const RolesPage = () => {
     const application = useApplication();
     const { show } = useGlobalToast();
     const accessToken = useAuthSessionStore((s: AuthSessionState) => s.accessToken);
-    const tenantId = useAuthSessionStore((s: AuthSessionState) => s.tenantId);
     const permissions = useAuthSessionStore((s: AuthSessionState) => s.permissions);
-    const allowed = canReadRoles(permissions);
+    // Roles (lectura) o asignaciones (rbac/manage): cada permiso llega a su parte.
+    const allowed = canReadRoles(permissions) || canManageAssignments(permissions);
     const canManage = canManageRoles(permissions);
     const canAssign = canManageAssignments(permissions);
-    const canListPermissions = canReadPermissions(permissions);
+    // El servidor permite estas consultas con su permiso de lectura o con rbac/manage
+    // (lo necesario para asignar), así que no se exigen permisos ajenos.
+    const canListPermissions = canReadPermissions(permissions) || canAssign;
+    const canListUsers = canReadUsers(permissions) || canAssign;
 
     const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(true);
@@ -110,14 +112,14 @@ export const RolesPage = () => {
 
     // Usuarios de la empresa de la sesión: solo hacen falta para asignar roles.
     useEffect(() => {
-        if (!accessToken || !tenantId || !allowed || !canAssign) return;
+        if (!accessToken || !allowed || !canAssign || !canListUsers) return;
         application.authContext.users
-            .list({ tenantId: toTenantId(tenantId) }, { accessToken })
+            .list({ accessToken })
             .then((list) =>
                 setUsers([...list].sort((a, b) => (a.username || a.email).localeCompare(b.username || b.email, "es"))),
             )
             .catch((error: unknown) => notifyError("No se pudieron cargar los usuarios", error));
-    }, [accessToken, tenantId, allowed, canAssign, application, notifyError]);
+    }, [accessToken, allowed, canAssign, canListUsers, application, notifyError]);
 
     const loadRolePermissions = useCallback(
         (role: Role) => {
@@ -460,6 +462,11 @@ export const RolesPage = () => {
                 <section className="surface-card p-4 border-round border-1 border-300" data-cy="user-roles-section">
                     <h3 className="mt-0 mb-2">Asignar roles a usuario</h3>
                     <p className="mt-0 text-color-secondary text-sm">{SESSION_NOTE}</p>
+                    {canListUsers ? null : (
+                        <p className="mt-0 text-color-secondary text-sm" data-cy="user-roles-no-users-permission">
+                            Para elegir un usuario necesitas también ver los usuarios de la empresa (users/read).
+                        </p>
+                    )}
                     <FormField id="user-roles-user-select" label="Usuario">
                         <select
                             id="user-roles-user-select"

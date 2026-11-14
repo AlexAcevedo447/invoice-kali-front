@@ -3,50 +3,42 @@ import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
 } from "@modules/auth-context/domain/repositories/RequestOptions";
-import type { TenantId } from "../value-objects/TenantId";
 import type { UserId } from "../value-objects/UserId";
 
+/**
+ * Usuarios de la empresa de la sesión (RF-04). La empresa la toma el servidor
+ * del token, así que no se envía tenant_id. Las respuestas nunca incluyen la
+ * contraseña ni su hash.
+ */
 export interface UserRepository {
+  /** POST /users: devuelve el usuario creado. */
   create(
     command: {
-      tenantId: TenantId;
       identificationNumber: string;
       username: string;
       email: string;
       password: string;
     },
     options: IdempotentProtectedRequestOptions,
-  ): Promise<void>;
-
-  list(
-    query: { tenantId: TenantId },
-    options: ProtectedRequestOptions,
-  ): Promise<User[]>;
-
-  getById(
-    query: { userId: UserId; tenantId: TenantId },
-    options: ProtectedRequestOptions,
   ): Promise<User>;
 
-  getByEmail(
-    query: { tenantId: TenantId; email: string },
-    options: ProtectedRequestOptions,
-  ): Promise<User>;
+  list(options: ProtectedRequestOptions): Promise<User[]>;
 
+  getById(query: { userId: UserId }, options: ProtectedRequestOptions): Promise<User>;
+
+  getByEmail(query: { email: string }, options: ProtectedRequestOptions): Promise<User>;
+
+  /** PUT /users/:id. Sin `password` (o vacía) el servidor conserva la actual. */
   update(
     command: {
       userId: UserId;
-      tenantId: TenantId;
       identificationNumber: string;
       username: string;
       email: string;
-      password: string;
+      password?: string;
     },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void>;
 
-  delete(
-    command: { userId: UserId; tenantId: TenantId },
-    options: IdempotentProtectedRequestOptions,
-  ): Promise<void>;
+  delete(command: { userId: UserId }, options: IdempotentProtectedRequestOptions): Promise<void>;
 }

@@ -1,73 +1,77 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { z } from "zod";
-import { useApplication } from "../../../../app/application/useApplication";
-import { useAuthSessionStore } from "../../../../app/state/authSessionStore";
-import type { AuthSessionState } from "../../../../app/state/authSessionStore";
-import { createIdempotencyKey } from "../../../../app/state/createIdempotencyKey";
-import { toTenantId } from "../../../auth-context/domain/value-objects/TenantId";
-import { toUserId } from "../../../auth-context/domain/value-objects/UserId";
-import { toRoleId } from "../../../auth-context/domain/value-objects/RoleId";
-import { HttpError } from "../../../../shared/application/http/HttpError";
-import { FormActions } from "../../../../shared/ui/forms/FormActions";
-import { FormField } from "../../../../shared/ui/forms/FormField";
-import { SubmitButton } from "../../../../shared/ui/forms/SubmitButton";
-import { useZodForm } from "../../../../shared/ui/forms/useZodForm";
-import { useGlobalToast } from "../../../../shared/ui/GlobalToastContext";
-import type { Role } from "../../../auth-context/domain/entities/Role";
-
-const userSchema = z.object({
-    identificationNumber: z.string().min(1, "Identification number is required"),
-    username: z.string().min(1, "Username is required"),
-    email: z.string().email("Enter a valid email"),
-    password: z.string().min(1, "Password is required"),
-    roleId: z.string().min(1, "Role is required"),
-});
+import { useApplication } from "@app/application/useApplication";
+import { useAuthSessionStore, type AuthSessionState } from "@app/state/authSessionStore";
+import { createIdempotencyKey } from "@app/state/createIdempotencyKey";
+import type { Role } from "@modules/auth-context/domain/entities/Role";
+import { toRoleId } from "@modules/auth-context/domain/value-objects/RoleId";
+import { FormActions } from "@shared/ui/forms/FormActions";
+import { FormField } from "@shared/ui/forms/FormField";
+import { SubmitButton } from "@shared/ui/forms/SubmitButton";
+import { useGlobalToast } from "@shared/ui/GlobalToastContext";
+import { assignableRoles } from "./assignableRoles";
+import { PASSWORD_POLICY_HINT, createUserSchema } from "./userForm.schema";
+import { fieldErrors } from "./tenantForm.schema";
 
 const errorMessage = (error: unknown): string =>
     error instanceof Error && error.message ? error.message : "Error inesperado.";
 
-type UserFormValues = z.infer<typeof userSchema>;
+const EMPTY_VALUES = { identificationNumber: "", username: "", email: "", password: "", roleId: "" };
 
-export const UserCreateForm = () => {
-    const isSubmittingRef = useRef(false);
+interface UserCreateFormProps {
+    /**
+     * Mostrar el rol opcional: la sesión puede asignar roles (rbac/manage) y ver
+     * roles y permisos (roles/read, permissions/read) para saber cuáles cubre.
+     */
+    canAssignRoles: boolean;
+    /** Se llama tras crear el usuario (con o sin rol) para recargar la lista. */
+    onCreated?: () => void;
+}
+
+/**
+ * Crear usuario (CA-04.2). La empresa la toma el servidor del token. El rol es
+ * opcional y solo se ofrecen los roles cuyos permisos cubre la sesión
+ * (CA-04.6); se asigna con el Id que devuelve POST /users.
+ */
+export const UserCreateForm = ({ canAssignRoles, onCreated }: UserCreateFormProps) => {
     const { show } = useGlobalToast();
     const application = useApplication();
     const accessToken = useAuthSessionStore((state: AuthSessionState) => state.accessToken);
-    const tenantId = useAuthSessionStore((state: AuthSessionState) => state.tenantId);
+    const sessionPermissions = useAuthSessionStore((state: AuthSessionState) => state.permissions);
+
+    const [values, setValues] = useState(EMPTY_VALUES);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [submitting, setSubmitting] = useState(false);
     const [roles, setRoles] = useState<Role[]>([]);
     const [rolesLoaded, setRolesLoaded] = useState(false);
 
-    // Roles disponibles en el tenant (GET /api/v1/roles), filtrados a los que tienen
-    // al menos un permiso (GET /api/v1/rbac/roles/permissions): un rol sin permisos
-    // dejaría al usuario sin acceso. No se asigna ningún rol por defecto.
+    // Roles de la empresa (GET /roles) + sus permisos (GET /rbac/roles/permissions)
+    // + permisos de la empresa (GET /permissions) para saber cuáles cubre la sesión.
     useEffect(() => {
-        if (!accessToken || !tenantId) return;
+        if (!accessToken || !canAssignRoles) return;
         let cancelled = false;
-        application.authContext.roles
-            .list({ accessToken })
-            .then((allRoles) =>
-                Promise.all(
-                    allRoles.map(async (role) => {
-                        const links = await application.authContext.rbac.getRolePermissions(
-                            { roleId: role.id },
-                            { accessToken }
-                        );
-                        return links.length > 0 ? role : null;
-                    })
-                )
-            )
+        const { roles: roleRepository, rbac, permissions } = application.authContext;
+        Promise.all([roleRepository.list({ accessToken }), permissions.list({ accessToken })])
+            .then(async ([allRoles, tenantPermissions]) => {
+                const links = await Promise.all(
+                    allRoles.map(
+                        async (role) =>
+                            [String(role.id), await rbac.getRolePermissions({ roleId: role.id }, { accessToken })] as const,
+                    ),
+                );
+                return assignableRoles(
+                    allRoles,
+                    new Map(links),
+                    new Map(tenantPermissions.map((permission) => [String(permission.id), permission])),
+                    sessionPermissions,
+                ).sort((a, b) => a.name.localeCompare(b.name, "es"));
+            })
             .then((result) => {
-                if (!cancelled) setRoles(result.filter((role): role is Role => role !== null));
+                if (!cancelled) setRoles(result);
             })
             .catch((error: unknown) => {
                 if (cancelled) return;
-                show({
-                    severity: "error",
-                    summary: "No se pudieron cargar los roles",
-                    detail: errorMessage(error),
-                    life: 4000,
-                });
+                show({ severity: "error", summary: "No se pudieron cargar los roles", detail: errorMessage(error), life: 4000 });
             })
             .finally(() => {
                 if (!cancelled) setRolesLoaded(true);
@@ -75,202 +79,171 @@ export const UserCreateForm = () => {
         return () => {
             cancelled = true;
         };
-    }, [application, accessToken, tenantId, show]);
+    }, [application, accessToken, canAssignRoles, sessionPermissions, show]);
 
-    const form = useZodForm<UserFormValues>(userSchema, {
-        defaultValues: {
-            identificationNumber: "",
-            username: "",
-            email: "",
-            password: "",
-            roleId: "",
-        },
-    });
+    const setField = (field: keyof typeof EMPTY_VALUES) => (value: string) =>
+        setValues((current) => ({ ...current, [field]: value }));
 
-    const submitValues = async (values: UserFormValues) => {
-        if (!accessToken || !tenantId) return;
-
-        try {
-            await application.authContext.users.create(
-                {
-                    tenantId: toTenantId(tenantId),
-                    identificationNumber: values.identificationNumber,
-                    username: values.username,
-                    email: values.email,
-                    password: values.password,
-                },
-                {
-                    accessToken,
-                    idempotencyKey: createIdempotencyKey(),
-                }
-            );
-        } catch (error) {
-            if (error instanceof HttpError && error.status === 409) {
-                show({
-                    severity: "error",
-                    summary: "Email duplicado",
-                    detail: "Ya existe un usuario registrado con este correo electrónico.",
-                    life: 4000,
-                });
-            } else {
-                show({
-                    severity: "error",
-                    summary: "Error al crear usuario",
-                    detail: errorMessage(error),
-                    life: 5000,
-                });
-            }
+    const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!accessToken || submitting) return;
+        const parsed = createUserSchema.safeParse(canAssignRoles ? values : { ...values, roleId: "" });
+        if (!parsed.success) {
+            setErrors(fieldErrors(parsed.error));
             return;
         }
-
-        // POST /users no devuelve el id: se consulta por correo y se asigna el rol elegido.
+        setErrors({});
+        setSubmitting(true);
+        const { roleId, ...command } = parsed.data;
         try {
-            const user = await application.authContext.users.getByEmail(
-                { tenantId: toTenantId(tenantId), email: values.email },
-                { accessToken }
-            );
-            await application.authContext.rbac.assignUserRole(
-                {
-                    userId: toUserId(String(user.id)),
-                    roleId: toRoleId(values.roleId),
-                },
-                { accessToken, idempotencyKey: createIdempotencyKey() }
-            );
+            let created;
+            try {
+                created = await application.authContext.users.create(command, {
+                    accessToken,
+                    idempotencyKey: createIdempotencyKey(),
+                });
+            } catch (error) {
+                show({ severity: "error", summary: "No se pudo crear el usuario", detail: errorMessage(error), life: 6000 });
+                return;
+            }
 
-            const roleName = roles.find((role) => String(role.id) === values.roleId)?.name;
-            show({
-                severity: "success",
-                summary: "Usuario creado",
-                detail: roleName
-                    ? `El usuario se creó correctamente con el rol "${roleName}".`
-                    : "El usuario se creó correctamente.",
-                life: 4000,
-            });
-            form.reset();
-        } catch (error) {
-            show({
-                severity: "error",
-                summary: "Usuario creado sin rol",
-                detail: `El usuario se creó, pero no se pudo asignar el rol: ${errorMessage(error)}`,
-                life: 6000,
-            });
-        }
-    };
-
-    // La guarda contra envíos duplicados vive en el manejador del evento (no en
-    // render): cubre validación + peticiones y se libera siempre al terminar.
-    const onSafeSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        if (isSubmittingRef.current) return;
-        isSubmittingRef.current = true;
-        try {
-            await form.handleSubmit(submitValues)();
+            if (!roleId) {
+                show({ severity: "success", summary: "Usuario creado", detail: "El usuario se creó correctamente.", life: 4000 });
+            } else {
+                try {
+                    await application.authContext.rbac.assignUserRole(
+                        { userId: created.id, roleId: toRoleId(roleId) },
+                        { accessToken, idempotencyKey: createIdempotencyKey() },
+                    );
+                    const roleName = roles.find((role) => String(role.id) === roleId)?.name;
+                    show({
+                        severity: "success",
+                        summary: "Usuario creado",
+                        detail: roleName
+                            ? `El usuario se creó correctamente con el rol "${roleName}".`
+                            : "El usuario se creó correctamente.",
+                        life: 4000,
+                    });
+                } catch (error) {
+                    show({
+                        severity: "error",
+                        summary: "Usuario creado sin rol",
+                        detail: `El usuario se creó, pero no se pudo asignar el rol: ${errorMessage(error)}`,
+                        life: 6000,
+                    });
+                }
+            }
+            setValues(EMPTY_VALUES);
+            onCreated?.();
         } finally {
-            isSubmittingRef.current = false;
+            setSubmitting(false);
         }
     };
 
     return (
-        <section className="surface-card p-4 border-round border-1 border-300 mb-4">
+        <section className="surface-card p-4 border-round border-1 border-300 mb-4" data-cy="user-create-form">
             <h3 className="mt-0 mb-3">Crear usuario</h3>
-            <form onSubmit={onSafeSubmit} noValidate>
-                <FormField
-                    id="identificationNumber"
-                    label="Identification Number"
-                    required
-                    error={form.formState.errors.identificationNumber?.message}
-                >
-                    <input
-                        id="identificationNumber"
-                        type="text"
-                        data-cy="user-identification"
-                        className="p-inputtext p-component w-full"
-                        {...form.register("identificationNumber")}
-                    />
-                </FormField>
-
-                <FormField
-                    id="username"
-                    label="Username"
-                    required
-                    error={form.formState.errors.username?.message}
-                >
-                    <input
-                        id="username"
-                        type="text"
-                        data-cy="user-username"
-                        className="p-inputtext p-component w-full"
-                        {...form.register("username")}
-                    />
-                </FormField>
-
-                <FormField
-                    id="email"
-                    label="Email"
-                    required
-                    error={form.formState.errors.email?.message}
-                >
-                    <input
-                        id="email"
-                        type="email"
-                        data-cy="user-email"
-                        className="p-inputtext p-component w-full"
-                        autoComplete="email"
-                        {...form.register("email")}
-                    />
-                </FormField>
-
-                <FormField
-                    id="password"
-                    label="Password"
-                    required
-                    hint="Mínimo 12 caracteres, con mayúscula, minúscula, número y símbolo, sin espacios."
-                    error={form.formState.errors.password?.message}
-                >
-                    <input
-                        id="password"
-                        type="password"
-                        data-cy="user-password"
-                        className="p-inputtext p-component w-full"
-                        autoComplete="new-password"
-                        {...form.register("password")}
-                    />
-                </FormField>
-
-                <FormField
-                    id="roleId"
-                    label="Role"
-                    required
-                    hint={
-                        rolesLoaded && roles.length === 0
-                            ? "No hay roles con permisos asignados en este tenant."
-                            : undefined
-                    }
-                    error={form.formState.errors.roleId?.message}
-                >
-                    <select
-                        id="roleId"
-                        data-cy="user-role"
-                        className="p-inputtext p-component w-full"
-                        disabled={!rolesLoaded || roles.length === 0}
-                        {...form.register("roleId")}
-                    >
-                        <option value="">
-                            {rolesLoaded ? "Selecciona un rol" : "Cargando roles..."}
-                        </option>
-                        {roles.map((role) => (
-                            <option key={String(role.id)} value={String(role.id)}>
-                                {role.name}
-                            </option>
-                        ))}
-                    </select>
-                </FormField>
+            <form onSubmit={onSubmit} noValidate>
+                <div className="grid">
+                    <div className="col-12 md:col-6">
+                        <FormField id="identificationNumber" label="Identificación" required error={errors.identificationNumber}>
+                            <input
+                                id="identificationNumber"
+                                type="text"
+                                data-cy="user-identification"
+                                className="p-inputtext p-component w-full"
+                                value={values.identificationNumber}
+                                onChange={(e) => setField("identificationNumber")(e.target.value)}
+                            />
+                        </FormField>
+                    </div>
+                    <div className="col-12 md:col-6">
+                        <FormField id="username" label="Nombre de usuario" required error={errors.username}>
+                            <input
+                                id="username"
+                                type="text"
+                                data-cy="user-username"
+                                className="p-inputtext p-component w-full"
+                                value={values.username}
+                                onChange={(e) => setField("username")(e.target.value)}
+                            />
+                        </FormField>
+                    </div>
+                    <div className="col-12 md:col-6">
+                        <FormField id="email" label="Correo" required error={errors.email}>
+                            <input
+                                id="email"
+                                type="email"
+                                data-cy="user-email"
+                                className="p-inputtext p-component w-full"
+                                autoComplete="off"
+                                value={values.email}
+                                onChange={(e) => setField("email")(e.target.value)}
+                            />
+                        </FormField>
+                    </div>
+                    <div className="col-12 md:col-6">
+                        <FormField
+                            id="password"
+                            label="Contraseña"
+                            required
+                            hint={PASSWORD_POLICY_HINT}
+                            error={errors.password}
+                        >
+                            <input
+                                id="password"
+                                type="password"
+                                data-cy="user-password"
+                                className="p-inputtext p-component w-full"
+                                autoComplete="new-password"
+                                value={values.password}
+                                onChange={(e) => setField("password")(e.target.value)}
+                            />
+                        </FormField>
+                    </div>
+                    {canAssignRoles ? (
+                        <div className="col-12 md:col-6">
+                            <FormField
+                                id="roleId"
+                                label="Rol (opcional)"
+                                hint={
+                                    rolesLoaded && roles.length === 0
+                                        ? "No hay roles que puedas asignar: deben tener permisos y no superar los tuyos."
+                                        : "Solo se listan roles con permisos que tú también tienes."
+                                }
+                                error={errors.roleId}
+                            >
+                                <select
+                                    id="roleId"
+                                    data-cy="user-role"
+                                    className="p-inputtext p-component w-full"
+                                    disabled={!rolesLoaded || roles.length === 0}
+                                    value={values.roleId}
+                                    onChange={(e) => setField("roleId")(e.target.value)}
+                                >
+                                    <option value="">{rolesLoaded ? "Sin rol" : "Cargando roles..."}</option>
+                                    {roles.map((role) => (
+                                        <option key={String(role.id)} value={String(role.id)}>
+                                            {role.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </FormField>
+                        </div>
+                    ) : null}
+                </div>
+                {canAssignRoles ? null : (
+                    <p className="text-color-secondary text-sm mt-0" data-cy="user-create-no-roles">
+                        El usuario se creará sin roles. Para asignarle uno necesitas rbac/manage, roles/read y
+                        permissions/read (o pídeselo a un administrador desde Roles).
+                    </p>
+                )}
 
                 <FormActions>
                     <SubmitButton
                         label="Crear usuario"
                         loadingLabel="Creando..."
-                        isSubmitting={form.formState.isSubmitting}
+                        isSubmitting={submitting}
                         data-cy="user-submit"
                     />
                 </FormActions>

@@ -5,87 +5,6 @@ type SessionPermission = AuthSession["permissions"][number];
 
 const normalize = (value: string): string => value.trim().toLowerCase();
 
-const includesRole = (roles: string[], expectedRole: string): boolean => {
-  const target = normalize(expectedRole);
-  return roles.some((role) => normalize(role) === target);
-};
-
-const matchesResource = (
-  permissionResource: string,
-  resources: readonly string[],
-): boolean => {
-  const current = normalize(permissionResource);
-  if (current === "*") {
-    return true;
-  }
-
-  return resources.some((resource) => {
-    const candidate = normalize(resource);
-    return (
-      current === candidate ||
-      current.startsWith(`${candidate}:`) ||
-      current.startsWith(`${candidate}.`) ||
-      current.startsWith(`${candidate}/`)
-    );
-  });
-};
-
-const matchesAction = (
-  permissionAction: string,
-  actions: readonly string[],
-): boolean => {
-  const current = normalize(permissionAction);
-  if (current === "*") {
-    return true;
-  }
-
-  return actions.some((action) => normalize(action) === current);
-};
-
-const hasAnyPermission = (
-  permissions: SessionPermission[],
-  resources: readonly string[],
-  actions: readonly string[] = ["*", "read", "list", "view", "manage"],
-): boolean => {
-  return permissions.some(
-    (permission) =>
-      matchesResource(permission.resource, resources) &&
-      matchesAction(permission.action, actions),
-  );
-};
-
-export const canAccessInvoicingModule = (
-  roles: string[],
-  permissions: SessionPermission[],
-): boolean => {
-  if (includesRole(roles, "invoicing")) {
-    return true;
-  }
-
-  return hasAnyPermission(permissions, [
-    "invoices",
-    "invoice-items",
-    "metrics",
-  ]);
-};
-
-export const canAccessAdminModule = (
-  roles: string[],
-  permissions: SessionPermission[],
-): boolean => {
-  if (includesRole(roles, "admin")) {
-    return true;
-  }
-
-  return hasAnyPermission(permissions, [
-    "users",
-    "tenants",
-    "roles",
-    "permissions",
-    "rbac",
-  ]);
-};
-
 /** Permiso RBAC que exige el servidor para administrar empresas (mismo que kali-auth-context). */
 export const PLATFORM_ADMIN_PERMISSION = { resource: "tenants", action: "manage" } as const;
 
@@ -156,17 +75,84 @@ export const canManagePermissions = (permissions: SessionPermission[]): boolean 
 export const canManageAssignments = (permissions: SessionPermission[]): boolean =>
   hasPermission(permissions, "rbac", "manage");
 
+/** Ver usuarios de la empresa (users/read; users/manage lo incluye). */
+export const canReadUsers = (permissions: SessionPermission[]): boolean =>
+  hasPermission(permissions, "users", "read");
+
+/** Crear, editar y eliminar usuarios (users/manage). */
+export const canManageUsers = (permissions: SessionPermission[]): boolean =>
+  hasPermission(permissions, "users", "manage");
+
+/** Ver facturas (invoices/read). */
+export const canReadInvoices = (permissions: SessionPermission[]): boolean =>
+  hasPermission(permissions, "invoices", "read");
+
+/** Ver el catálogo de clientes (customers/read). */
+export const canReadCustomers = (permissions: SessionPermission[]): boolean =>
+  hasPermission(permissions, "customers", "read");
+
+/** Ver el catálogo de productos (products/read). */
+export const canReadProducts = (permissions: SessionPermission[]): boolean =>
+  hasPermission(permissions, "products", "read");
+
+/** Ver líneas de factura (invoice-items/read). */
+export const canReadInvoiceItems = (permissions: SessionPermission[]): boolean =>
+  hasPermission(permissions, "invoice-items", "read");
+
+/**
+ * Módulo de facturación (CA-04.10): solo por permisos efectivos (lectura de
+ * facturas, líneas, clientes o productos; manage y comodines incluidos). El
+ * nombre del rol (p. ej. "invoicing") no concede nada.
+ * `roles` se conserva en la firma por compatibilidad con PermissionRoute.
+ */
+export const canAccessInvoicingModule = (
+  _roles: string[],
+  permissions: SessionPermission[],
+): boolean =>
+  canReadInvoices(permissions) ||
+  canReadInvoiceItems(permissions) ||
+  canReadCustomers(permissions) ||
+  canReadProducts(permissions);
+
+/**
+ * Módulo de administración (CA-04.10): solo por permisos efectivos. Cada
+ * permiso lleva a su funcionalidad: users/roles/permissions con read,
+ * rbac/manage (asignaciones, en Roles) y tenants/manage (Empresas, solo en la
+ * empresa de plataforma). El nombre del rol (p. ej. "admin") no concede nada.
+ */
+export const canAccessAdminModule = (
+  _roles: string[],
+  permissions: SessionPermission[],
+  isPlatformTenant = false,
+): boolean =>
+  // Cada permiso basta para llegar a SU funcionalidad, sin exigir permisos ajenos:
+  // rbac/manage → asignaciones (en Roles); tenants/manage → Empresas (solo plataforma).
+  canReadUsers(permissions) ||
+  canReadRoles(permissions) ||
+  canReadPermissions(permissions) ||
+  canManageAssignments(permissions) ||
+  canManageTenants(isPlatformTenant, permissions);
+
+/**
+ * Primera pantalla a la que la sesión tiene acceso: facturación (facturas,
+ * clientes, productos, líneas) y luego administración (usuarios, roles,
+ * permisos, asignaciones, empresas). Sin ningún permiso, null: la sesión es
+ * válida pero se muestra la pantalla "sin acceso a módulos".
+ */
 export const resolveHomeRoute = (
   roles: string[],
   permissions: SessionPermission[],
+  isPlatformTenant = false,
 ): string | null => {
   if (canAccessInvoicingModule(roles, permissions)) {
-    return ROUTES.invoicing.invoices;
+    if (canReadInvoices(permissions)) return ROUTES.invoicing.invoices;
+    if (canReadCustomers(permissions)) return ROUTES.invoicing.customers;
+    if (canReadProducts(permissions)) return ROUTES.invoicing.products;
+    return ROUTES.invoicing.invoiceItems;
   }
-
-  if (canAccessAdminModule(roles, permissions)) {
-    return ROUTES.admin.users;
-  }
-
+  if (canReadUsers(permissions)) return ROUTES.admin.users;
+  if (canReadRoles(permissions) || canManageAssignments(permissions)) return ROUTES.admin.roles;
+  if (canReadPermissions(permissions)) return ROUTES.admin.permissions;
+  if (canManageTenants(isPlatformTenant, permissions)) return ROUTES.admin.tenants;
   return null;
 };

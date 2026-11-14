@@ -44,6 +44,7 @@ export interface ApiAuthorizationDecision {
 
 // Auth serializa sus entidades de dominio sin tags JSON: las claves llegan en
 // PascalCase (Id, TenantId, ...). Verificado contra GET /users, /roles, etc.
+// El servidor ya no devuelve Password; si llegara, el mapper lo ignora.
 export interface ApiUser {
   Id: string;
   TenantId: string;
@@ -131,6 +132,7 @@ export const mapAuthorizationApiToDomain = (
   reason: input.reason,
 });
 
+/** Solo copia los campos públicos: nunca la contraseña ni su hash. */
 export const mapUserApiToDomain = (input: ApiUser): User => ({
   id: toUserId(input.Id),
   tenantId: toTenantId(input.TenantId),

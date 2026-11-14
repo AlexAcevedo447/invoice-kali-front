@@ -1,6 +1,8 @@
 export const ROUTES = {
   home: "/",
   login: "/login",
+  /** Sesión válida sin permisos sobre ningún módulo. */
+  noAccess: "/sin-acceso",
   admin: {
     root: "/admin",
     users: "/admin/users",

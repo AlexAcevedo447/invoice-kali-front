@@ -38,6 +38,37 @@ describe("translateBackendMessage", () => {
         expect(translated.length).toBeGreaterThan(0);
     });
 
+    it.each([
+        ["insufficient permissions", "No tienes permiso para realizar esta acción."],
+        [
+            "cannot manage a user with privileges you do not have",
+            "No puedes editar ni eliminar a un usuario con permisos que tú no tienes.",
+        ],
+        ["a user with this email already exists for this tenant", "Ya existe un usuario registrado con este correo electrónico."],
+        ["email is required", "El correo es obligatorio."],
+        ["password is required", "La contraseña es obligatoria."],
+        ["password must have at least 12 characters", "La contraseña debe tener al menos 12 caracteres."],
+        ["password must include at least one uppercase letter", "La contraseña debe incluir al menos una letra mayúscula."],
+        ["password must include at least one lowercase letter", "La contraseña debe incluir al menos una letra minúscula."],
+        ["password must include at least one digit", "La contraseña debe incluir al menos un número."],
+        ["password must include at least one symbol", "La contraseña debe incluir al menos un símbolo."],
+        ["password must not contain whitespace", "La contraseña no debe contener espacios."],
+    ])("traduce el mensaje de usuarios %s", (message, expected) => {
+        expect(translateBackendMessage(message)).toBe(expected);
+    });
+
+    it("explica que un usuario con roles debe quedarse sin roles antes de eliminarlo", () => {
+        const translated = translateBackendMessage("user has roles assigned");
+        expect(translated).toContain("tiene roles asignados");
+        expect(translated).toContain("Roles");
+    });
+
+    it("explica que no se puede dejar a la empresa sin administrador", () => {
+        expect(translateBackendMessage("operation would leave the tenant without an administrator")).toContain(
+            "sin ningún administrador",
+        );
+    });
+
     it("explica que un rol asignado debe quitarse antes de eliminarlo", () => {
         expect(translateBackendMessage("role is assigned to users")).toBe(
             "El rol está asignado a usuarios. Quítalo de esos usuarios antes de eliminarlo.",
