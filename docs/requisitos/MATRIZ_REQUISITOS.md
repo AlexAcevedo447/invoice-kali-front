@@ -32,8 +32,8 @@ es RF-05). No se encontraron historias de usuario documentadas.
 | RF-10 | Crear, listar, consultar y actualizar facturas | TRZ-RF-07; GA10 F3, F4, F5 | Acta: cumplido | Implementado y probado | CP-INT-005/006/009, GA10 |
 | RF-11 | Pagar y cancelar facturas según reglas de dominio | TRZ-RF-07 (parte); GA10 F6, F7 | Acta: cumplido | Implementado y probado | Pruebas de dominio, GA10 |
 | RF-12 | Crear, listar, consultar, actualizar y eliminar ítems | TRZ-RF-08; GA10 F12, F15 | Acta: cumplido | Implementado (API y formulario de factura) y probado | GA10 |
-| RF-13 | Registrar y calcular impuestos DEBIT/CREDIT por ítem | TRZ-RF-09 (parte) | Acta: cumplido | Parcial: la interfaz edita solo el impuesto principal | Incremento 4 |
-| RF-14 | Calcular subtotal, impuestos y total | TRZ-RF-09 (parte) | Acta: cumplido | Implementado y probado | Pruebas de dominio, CP-INT-006 |
+| RF-13 | Registrar y calcular impuestos DEBIT/CREDIT por ítem | TRZ-RF-09 (parte) | Acta: cumplido | Implementado y probado (0..N impuestos por línea, código normalizado sin repetir, tipo explícito, tarifas sin redondeo, orden conservado, vista de solo lectura) | [Incremento 4](INCREMENTO_04_IMPUESTOS.md): CP-INT-014, CP-E2E-011, GA10, Go, Vitest |
+| RF-14 | Calcular subtotal, impuestos y total | TRZ-RF-09 (parte) | Acta: cumplido | Implementado y probado (la interfaz muestra los totales del servidor, sin recalcular) | Pruebas de dominio, CP-INT-006, CP-INT-014, CP-E2E-011 |
 | RF-15 | Exponer métricas internas de facturación | GA10 F15 | Acta: cumplido | Implementado (backend) | `stack:health` |
 | RF-16 | Evitar duplicidad en operaciones mutables (Idempotency-Key) | TRZ-RNF-02 | Acta: cumplido | Implementado y probado | CP-INT-007 |
 

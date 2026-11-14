@@ -56,7 +56,7 @@ guardan normalizados: sin espacios a los lados y en minúsculas.
 | `GET /invoices`, `GET /invoices/:id` | `invoices/read` |
 | `POST /invoices`, `PUT /invoices/:id`, `PATCH /invoices/:id/pay`, `PATCH /invoices/:id/cancel` | `invoices/manage` |
 | `GET /invoice-items`, `GET /invoice-items/:id` | `invoice-items/read` |
-| `POST /invoice-items`, `PUT /invoice-items/:id`, `DELETE /invoice-items/:id` | `invoice-items/manage` |
+| `POST /invoice-items`, `PUT /invoice-items/:id`, `DELETE /invoice-items/:id` | `invoice-items/manage` (D4-05: `invoices/manage` **no** lo concede; crear una factura con sus líneas e impuestos en `POST /invoices` solo exige `invoices/manage`) |
 | `GET /customers` | `customers/read` |
 | `POST /customers` | `customers/manage` |
 | `GET /products` | `products/read` |
@@ -73,6 +73,11 @@ Cada permiso lleva a su funcionalidad sin exigir permisos ajenos: `users/read` �
 `permissions/read` → Permisos; `tenants/manage` en la plataforma → Empresas; permisos de
 facturación → Facturas, Clientes o Productos. Sin ningún permiso, la sesión es válida y se
 muestra "Sin acceso a módulos" con opción de cerrar sesión.
+
+En Facturas (incremento 4): la acción **Ver** (solo lectura de líneas e impuestos) exige
+`invoices/read`. Al editar una factura existente sin `invoice-items/manage`, las líneas y sus
+impuestos quedan de solo lectura con una nota que lo explica; el cliente y el vencimiento se
+siguen editando con `invoices/manage`.
 
 ## Reglas contra escalamiento de privilegios
 
