@@ -1,25 +1,10 @@
 #!/bin/sh
+# Baja front + facturación + auth. Usa `docker compose down` SIN -v:
+# elimina contenedores y redes, pero conserva los volúmenes de datos.
 set -eu
 
-ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-STACK_ENV_FILE="$ROOT_DIR/.env.stack"
-
-# Defaults
-AUTH_PROJECT_PATH="../kali-auth-context"
-AUTH_COMPOSE_FILE="docker-compose.dev.yml"
-AUTH_ENV_FILE=".env.dev"
-
-INVOICING_PROJECT_PATH="../kali-invoice-service"
-INVOICING_COMPOSE_FILE="docker-compose.debug.yml"
-INVOICING_ENV_FILE=".env.dev"
-
-FRONT_COMPOSE_FILE="docker-compose.dev.yml"
-FRONT_ENV_FILE=".env.dev"
-
-if [ -f "$STACK_ENV_FILE" ]; then
-  # shellcheck disable=SC1090
-  . "$STACK_ENV_FILE"
-fi
+# shellcheck source=scripts/stack-common.sh
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/stack-common.sh"
 
 compose_down() {
   SERVICE_NAME="$1"
@@ -28,21 +13,16 @@ compose_down() {
   ENV_FILE="$4"
 
   if [ ! -d "$PROJECT_PATH" ] || [ ! -f "$PROJECT_PATH/$COMPOSE_FILE" ]; then
-    echo "[WARN] $SERVICE_NAME: compose no encontrado, se omite"
+    echo "[WARN] $SERVICE_NAME: compose no encontrado en $PROJECT_PATH/$COMPOSE_FILE, se omite"
     return
   fi
 
-  if [ -n "$ENV_FILE" ] && [ -f "$PROJECT_PATH/$ENV_FILE" ]; then
-    echo "[INFO] Bajando $SERVICE_NAME"
-    docker compose -f "$PROJECT_PATH/$COMPOSE_FILE" --env-file "$PROJECT_PATH/$ENV_FILE" down
-  else
-    echo "[INFO] Bajando $SERVICE_NAME"
-    docker compose -f "$PROJECT_PATH/$COMPOSE_FILE" down
-  fi
+  echo "[INFO] Bajando $SERVICE_NAME"
+  run_compose "$PROJECT_PATH" "$COMPOSE_FILE" "$ENV_FILE" down
 }
 
 compose_down "front" "$ROOT_DIR" "$FRONT_COMPOSE_FILE" "$FRONT_ENV_FILE"
 compose_down "invoicing" "$INVOICING_PROJECT_PATH" "$INVOICING_COMPOSE_FILE" "$INVOICING_ENV_FILE"
 compose_down "auth" "$AUTH_PROJECT_PATH" "$AUTH_COMPOSE_FILE" "$AUTH_ENV_FILE"
 
-echo "[OK] Stack detenido"
+echo "[OK] Stack detenido (volúmenes conservados)"

@@ -2,18 +2,60 @@
 
 Base frontend con React + Vite + TypeScript, preparada para practicar DDD y arquitectura hexagonal sin complejidad innecesaria.
 
-## Quick Start
+## Arranque desde cero (Docker)
+
+Requisitos: Docker (Desktop o Engine con Compose v2), Git y Node.js (solo para `npm run`).
+
+1. Clona los repos como carpetas hermanas:
+
+```text
+kali/
+├── invoice-kali-front/     (este repo)
+├── kali-auth-context/
+├── kali-invoice-service/
+└── kali-invoice-tests/     (opcional: pruebas Cypress)
+```
+
+   Si usas otra estructura, copia `.env.stack.example` a `.env.stack` y ajusta las rutas.
+
+2. Desde este repo:
 
 ```bash
-# Setup inicial (solo una vez)
-npm install
-npm run setup
-
-# Desarrollo local
-npm run dev
-
-# O con Docker
 npm run stack:up
+npm run stack:health
+```
+
+`stack:up` hace, sin sobrescribir nada existente:
+
+- crea el `.env.dev` de cada repo copiando su `.env.example` si falta (valores de desarrollo
+  local coherentes: puertos, servicios, bases, issuer `http://localhost:8080`, audience `account`, JWKS y proxies;
+  credenciales de ejemplo solo locales). Equivale a `cp .env.example .env.dev` en cada repo;
+- genera las claves JWT de auth en `kali-auth-context/.secrets/` si no existen (servicio `jwt-keys`);
+- levanta auth, facturación y front. Postgres crea cada base la primera vez; **las migraciones
+  se aplican solas** al arrancar cada API;
+- auth crea la **empresa de plataforma y su administrador** (`SEED_MASTER_*`, idempotente).
+
+| Servicio | URL |
+| --- | --- |
+| Front | http://localhost:15173 |
+| Auth API | http://localhost:18080 (salud `/health`, JWKS `/.well-known/jwks.json`) |
+| Facturación API | http://localhost:8080 (métricas `/api/v1/metrics`) |
+| Adminer (BD de auth) | http://localhost:18081 |
+
+Usuario inicial (empresa `master`): `master@local.dev` / `Kali#Local2026` (valores de ejemplo de
+`kali-auth-context/.env.example`, solo para uso local).
+
+Empresa de prueba para la demo (opcional, repetible): desde `kali-invoice-tests`,
+`cp cypress.env.example.json cypress.env.json && npm ci` y luego
+`npx cypress run --spec cypress/e2e/demo/seed-video-demo.cy.ts`. Crea "Empresa Demo" (código `demo`),
+su administrador `admin.demo@local.dev` / `Demo#Local2026` con rol `invoicing`, clientes, productos y facturas.
+
+## Desarrollo del front en el host
+
+```bash
+npm install
+npm run setup      # crea .env.local (proxies a localhost) y .env.stack si faltan
+npm run dev        # http://localhost:5173 (backends levantados con stack:up)
 ```
 
 ## Estructura recomendada
@@ -69,13 +111,23 @@ src/
 
 Si quieres clonar y solo levantar todo (front + auth + facturacion), usa el stack script de este repo.
 
-1. Copia configuracion base:
+1. Rutas de los repos. Por defecto se usan repos hermanos de este
+   (`../kali-auth-context` y `../kali-invoice-service`). Si los tienes en otra
+   ubicación, crea `.env.stack` (ignorado por git) y ajusta las rutas; las rutas
+   relativas se resuelven desde la raíz de este repo:
 
 ```bash
 cp .env.stack.example .env.stack
+# p. ej. INVOICING_PROJECT_PATH=../../KALI/kali-invoice-service
 ```
 
-2. Edita `.env.stack` con las rutas locales de tus repos de auth y facturacion.
+2. Cada repo usa su propio `.env.dev` (credenciales y puertos); `.env.stack` no lleva secretos.
+
+| Pieza | Archivo Compose | Puerto en el host |
+| --- | --- | --- |
+| Auth (`kali-auth-context`) | `docker-compose.dev.yml` + `.env.dev` | 18080 |
+| Facturación (`kali-invoice-service`) | `docker-compose.dev.yml` + `.env.dev` (o `docker-compose.debug.yml` con Delve) | 8080 (BD 5432) |
+| Front (este repo) | `docker-compose.dev.yml` + `.env.dev` | 15173 |
 
 3. Levanta todo:
 
@@ -89,11 +141,14 @@ npm run stack:up
 npm run stack:health
 ```
 
-5. Baja todo:
+5. Baja todo (sin `-v`: conserva los volúmenes de datos):
 
 ```bash
 npm run stack:down
 ```
+
+`stack:health` comprueba front, auth (`/health` y JWKS), facturación (`/api/v1/metrics`),
+que facturación rechace peticiones sin token (401) y que el proxy del front llegue a facturación.
 
 Notas:
 

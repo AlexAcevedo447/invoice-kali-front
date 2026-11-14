@@ -1,25 +1,11 @@
 #!/bin/sh
+# Levanta auth + facturación + front en Docker (modo desarrollo).
+# Configuración de rutas: ver scripts/stack-common.sh y .env.stack.example.
+# No borra volúmenes: solo hace `up -d --build`.
 set -eu
 
-ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-STACK_ENV_FILE="$ROOT_DIR/.env.stack"
-
-# Defaults
-AUTH_PROJECT_PATH="../kali-auth-context"
-AUTH_COMPOSE_FILE="docker-compose.dev.yml"
-AUTH_ENV_FILE=".env.dev"
-
-INVOICING_PROJECT_PATH="../kali-invoice-service"
-INVOICING_COMPOSE_FILE="docker-compose.debug.yml"
-INVOICING_ENV_FILE=".env.dev"
-
-FRONT_COMPOSE_FILE="docker-compose.dev.yml"
-FRONT_ENV_FILE=".env.dev"
-
-if [ -f "$STACK_ENV_FILE" ]; then
-  # shellcheck disable=SC1090
-  . "$STACK_ENV_FILE"
-fi
+# shellcheck source=scripts/stack-common.sh
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/stack-common.sh"
 
 compose_up() {
   SERVICE_NAME="$1"
@@ -29,6 +15,7 @@ compose_up() {
 
   if [ ! -d "$PROJECT_PATH" ]; then
     echo "[ERROR] $SERVICE_NAME: no existe el directorio $PROJECT_PATH"
+    echo "        Copia .env.stack.example a .env.stack y ajusta la ruta del repo."
     exit 1
   fi
 
@@ -37,15 +24,13 @@ compose_up() {
     exit 1
   fi
 
-  if [ -n "$ENV_FILE" ] && [ -f "$PROJECT_PATH/$ENV_FILE" ]; then
-    echo "[INFO] Levantando $SERVICE_NAME con $COMPOSE_FILE + $ENV_FILE"
-    docker compose -f "$PROJECT_PATH/$COMPOSE_FILE" --env-file "$PROJECT_PATH/$ENV_FILE" up -d --build
-  else
-    echo "[INFO] Levantando $SERVICE_NAME con $COMPOSE_FILE"
-    docker compose -f "$PROJECT_PATH/$COMPOSE_FILE" up -d --build
-  fi
+  ensure_env_file "$PROJECT_PATH" "$ENV_FILE"
+  echo "[INFO] Levantando $SERVICE_NAME con $PROJECT_PATH/$COMPOSE_FILE"
+  run_compose "$PROJECT_PATH" "$COMPOSE_FILE" "$ENV_FILE" up -d --build
 }
 
+# Orden: auth y facturación crean las redes (kali-auth-dev-net, kali-dev-net)
+# a las que se conecta el contenedor del front.
 compose_up "auth" "$AUTH_PROJECT_PATH" "$AUTH_COMPOSE_FILE" "$AUTH_ENV_FILE"
 compose_up "invoicing" "$INVOICING_PROJECT_PATH" "$INVOICING_COMPOSE_FILE" "$INVOICING_ENV_FILE"
 compose_up "front" "$ROOT_DIR" "$FRONT_COMPOSE_FILE" "$FRONT_ENV_FILE"
@@ -54,3 +39,4 @@ echo "[OK] Stack levantado"
 echo "[INFO] Front: http://localhost:15173"
 echo "[INFO] Auth API: http://localhost:18080"
 echo "[INFO] Invoicing API: http://localhost:8080"
+echo "[INFO] Verifica con: npm run stack:health"

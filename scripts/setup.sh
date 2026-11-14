@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+# Raíz del repo (este script vive en scripts/).
+ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 
 echo "[INFO] Setup invoice-kali-front"
 
@@ -32,4 +33,4 @@ echo "  npm run stack:up"
 echo ""
 echo "Para healthcheck:"
 echo "  npm run stack:health  (Docker)"
-echo "  FRONT_PORT=5173 AUTH_PORT=8082 INVOICING_PORT=8083 npm run stack:health  (local)"
+echo "  FRONT_PORT=5173 npm run stack:health  (front local con npm run dev, backends en Docker)"
