@@ -1,55 +1,48 @@
 import type { Permission } from "../entities/Permission";
-import type { Role } from "../entities/Role";
 import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
 } from "@modules/auth-context/domain/repositories/RequestOptions";
-import type { TenantId } from "../value-objects/TenantId";
 import type { UserId } from "../value-objects/UserId";
 import type { RoleId } from "../value-objects/RoleId";
 import type { PermissionId } from "../value-objects/PermissionId";
 
+/** Asignaciones en la empresa del token (la interfaz no envía tenant_id). */
 export interface RbacRepository {
   assignUserRole(
-    command: { tenantId: TenantId; userId: UserId; roleId: RoleId },
+    command: { userId: UserId; roleId: RoleId },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void>;
 
   removeUserRole(
-    command: { tenantId: TenantId; userId: UserId; roleId: RoleId },
-    options: ProtectedRequestOptions,
+    command: { userId: UserId; roleId: RoleId },
+    options: IdempotentProtectedRequestOptions,
   ): Promise<void>;
 
   assignRolePermission(
-    command: {
-      tenantId: TenantId;
-      roleId: RoleId;
-      permissionId: PermissionId;
-    },
+    command: { roleId: RoleId; permissionId: PermissionId },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void>;
 
   removeRolePermission(
-    command: {
-      tenantId: TenantId;
-      roleId: RoleId;
-      permissionId: PermissionId;
-    },
-    options: ProtectedRequestOptions,
+    command: { roleId: RoleId; permissionId: PermissionId },
+    options: IdempotentProtectedRequestOptions,
   ): Promise<void>;
 
+  /** Ids de los roles asignados al usuario (el servidor devuelve vínculos usuario↔rol). */
   getUserRoles(
-    query: { tenantId: TenantId; userId: UserId },
+    query: { userId: UserId },
     options: ProtectedRequestOptions,
-  ): Promise<Role[]>;
+  ): Promise<RoleId[]>;
 
+  /** Ids de los permisos asignados al rol (el servidor devuelve vínculos rol↔permiso). */
   getRolePermissions(
-    query: { tenantId: TenantId; roleId: RoleId },
+    query: { roleId: RoleId },
     options: ProtectedRequestOptions,
-  ): Promise<Permission[]>;
+  ): Promise<PermissionId[]>;
 
   getUserEffectivePermissions(
-    query: { tenantId: TenantId; userId: UserId },
+    query: { userId: UserId },
     options: ProtectedRequestOptions,
   ): Promise<Permission[]>;
 }

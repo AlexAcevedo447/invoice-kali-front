@@ -1,13 +1,9 @@
 import type { Role } from "@modules/auth-context/domain/entities/Role";
 
+// La empresa la toma el servidor del token: los comandos no llevan tenantId.
 export interface CreateRoleCommand {
-  tenantId: string;
   name: string;
   description: string;
-}
-
-export interface ListRolesQuery {
-  tenantId: string;
 }
 
 export interface GetRoleByIdQuery {
@@ -16,7 +12,6 @@ export interface GetRoleByIdQuery {
 
 export interface UpdateRoleCommand {
   roleId: string;
-  tenantId: string;
   name: string;
   description: string;
 }

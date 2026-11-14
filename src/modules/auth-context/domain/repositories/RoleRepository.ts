@@ -4,18 +4,15 @@ import type {
   ProtectedRequestOptions,
 } from "@modules/auth-context/domain/repositories/RequestOptions";
 import type { RoleId } from "../value-objects/RoleId";
-import type { TenantId } from "../value-objects/TenantId";
 
+/** Opera siempre en la empresa del token (la interfaz no envía tenant_id). */
 export interface RoleRepository {
   create(
-    command: { tenantId: TenantId; name: string; description: string },
+    command: { name: string; description: string },
     options: IdempotentProtectedRequestOptions,
-  ): Promise<void>;
+  ): Promise<Role>;
 
-  list(
-    query: { tenantId: TenantId },
-    options: ProtectedRequestOptions,
-  ): Promise<Role[]>;
+  list(options: ProtectedRequestOptions): Promise<Role[]>;
 
   getById(
     query: { roleId: RoleId },
@@ -23,12 +20,7 @@ export interface RoleRepository {
   ): Promise<Role>;
 
   update(
-    command: {
-      roleId: RoleId;
-      tenantId: TenantId;
-      name: string;
-      description: string;
-    },
+    command: { roleId: RoleId; name: string; description: string },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void>;
 

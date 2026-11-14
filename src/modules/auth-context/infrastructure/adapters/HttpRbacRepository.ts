@@ -1,20 +1,27 @@
 import { AuthContextEndpoints } from "@modules/auth-context/application/endpoints";
 import type { Permission } from "../../domain/entities/Permission";
-import type { Role } from "../../domain/entities/Role";
 import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
 } from "../../domain/repositories/RequestOptions";
 import type { RbacRepository } from "../../domain/repositories/RbacRepository";
+import type { PermissionId } from "../../domain/value-objects/PermissionId";
+import type { RoleId } from "../../domain/value-objects/RoleId";
+import type { UserId } from "../../domain/value-objects/UserId";
 import {
   mapPermissionApiToDomain,
-  mapRoleApiToDomain,
+  mapRolePermissionLinksToPermissionIds,
+  mapUserRoleLinksToRoleIds,
   type ApiPermission,
-  type ApiRole,
+  type ApiRolePermissionLink,
+  type ApiUserRoleLink,
 } from "@modules/auth-context/infrastructure/mappers/authContextMapper";
 import type { HttpClient } from "../../../../shared/infrastructure/http/HttpClient";
 import { httpCore } from "../../../../shared/infrastructure/http/httpCore";
 import { toIdempotentProtectedConfig, toProtectedConfig } from "./httpConfig";
+
+type UserRoleBody = { user_id: string; role_id: string };
+type RolePermissionBody = { role_id: string; permission_id: string };
 
 export class HttpRbacRepository implements RbacRepository {
   private readonly httpClient: HttpClient;
@@ -24,132 +31,79 @@ export class HttpRbacRepository implements RbacRepository {
   }
 
   async assignUserRole(
-    command: { tenantId: string; userId: string; roleId: string },
+    command: { userId: UserId; roleId: RoleId },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void> {
-    await this.httpClient.post<
-      void,
-      {
-        tenant_id: string;
-        user_id: string;
-        role_id: string;
-      }
-    >(
+    await this.httpClient.post<void, UserRoleBody>(
       AuthContextEndpoints.rbac.assignUserRole,
-      {
-        tenant_id: command.tenantId,
-        user_id: command.userId,
-        role_id: command.roleId,
-      },
+      { user_id: command.userId, role_id: command.roleId },
       toIdempotentProtectedConfig(options),
     );
   }
 
   async removeUserRole(
-    command: { tenantId: string; userId: string; roleId: string },
-    options: ProtectedRequestOptions,
+    command: { userId: UserId; roleId: RoleId },
+    options: IdempotentProtectedRequestOptions,
   ): Promise<void> {
-    await this.httpClient.post<
-      void,
-      {
-        tenant_id: string;
-        user_id: string;
-        role_id: string;
-      }
-    >(
+    await this.httpClient.post<void, UserRoleBody>(
       AuthContextEndpoints.rbac.removeUserRole,
-      {
-        tenant_id: command.tenantId,
-        user_id: command.userId,
-        role_id: command.roleId,
-      },
-      toProtectedConfig(options),
+      { user_id: command.userId, role_id: command.roleId },
+      toIdempotentProtectedConfig(options),
     );
   }
 
   async assignRolePermission(
-    command: { tenantId: string; roleId: string; permissionId: string },
+    command: { roleId: RoleId; permissionId: PermissionId },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void> {
-    await this.httpClient.post<
-      void,
-      {
-        tenant_id: string;
-        role_id: string;
-        permission_id: string;
-      }
-    >(
+    await this.httpClient.post<void, RolePermissionBody>(
       AuthContextEndpoints.rbac.assignRolePermission,
-      {
-        tenant_id: command.tenantId,
-        role_id: command.roleId,
-        permission_id: command.permissionId,
-      },
+      { role_id: command.roleId, permission_id: command.permissionId },
       toIdempotentProtectedConfig(options),
     );
   }
 
   async removeRolePermission(
-    command: { tenantId: string; roleId: string; permissionId: string },
-    options: ProtectedRequestOptions,
+    command: { roleId: RoleId; permissionId: PermissionId },
+    options: IdempotentProtectedRequestOptions,
   ): Promise<void> {
-    await this.httpClient.post<
-      void,
-      {
-        tenant_id: string;
-        role_id: string;
-        permission_id: string;
-      }
-    >(
+    await this.httpClient.post<void, RolePermissionBody>(
       AuthContextEndpoints.rbac.removeRolePermission,
-      {
-        tenant_id: command.tenantId,
-        role_id: command.roleId,
-        permission_id: command.permissionId,
-      },
-      toProtectedConfig(options),
+      { role_id: command.roleId, permission_id: command.permissionId },
+      toIdempotentProtectedConfig(options),
     );
   }
 
   async getUserRoles(
-    query: { tenantId: string; userId: string },
+    query: { userId: UserId },
     options: ProtectedRequestOptions,
-  ): Promise<Role[]> {
-    const response = await this.httpClient.get<ApiRole[]>(
-      AuthContextEndpoints.rbac.getUserRoles(query.tenantId, query.userId),
+  ): Promise<RoleId[]> {
+    const response = await this.httpClient.get<ApiUserRoleLink[] | null>(
+      AuthContextEndpoints.rbac.getUserRoles(query.userId),
       toProtectedConfig(options),
     );
-
-    return response.map(mapRoleApiToDomain);
+    return mapUserRoleLinksToRoleIds(response);
   }
 
   async getRolePermissions(
-    query: { tenantId: string; roleId: string },
+    query: { roleId: RoleId },
     options: ProtectedRequestOptions,
-  ): Promise<Permission[]> {
-    const response = await this.httpClient.get<ApiPermission[]>(
-      AuthContextEndpoints.rbac.getRolePermissions(
-        query.tenantId,
-        query.roleId,
-      ),
+  ): Promise<PermissionId[]> {
+    const response = await this.httpClient.get<ApiRolePermissionLink[] | null>(
+      AuthContextEndpoints.rbac.getRolePermissions(query.roleId),
       toProtectedConfig(options),
     );
-
-    return response.map(mapPermissionApiToDomain);
+    return mapRolePermissionLinksToPermissionIds(response);
   }
 
   async getUserEffectivePermissions(
-    query: { tenantId: string; userId: string },
+    query: { userId: UserId },
     options: ProtectedRequestOptions,
   ): Promise<Permission[]> {
-    const response = await this.httpClient.get<ApiPermission[]>(
-      AuthContextEndpoints.rbac.getUserEffectivePermissions(
-        query.tenantId,
-        query.userId,
-      ),
+    const response = await this.httpClient.get<ApiPermission[] | null>(
+      AuthContextEndpoints.rbac.getUserEffectivePermissions(query.userId),
       toProtectedConfig(options),
     );
-
-    return response.map(mapPermissionApiToDomain);
+    return (response ?? []).map(mapPermissionApiToDomain);
   }
 }

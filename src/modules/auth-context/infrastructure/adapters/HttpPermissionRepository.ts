@@ -1,17 +1,23 @@
 import { AuthContextEndpoints } from "@modules/auth-context/application/endpoints";
 import type { Permission } from "../../domain/entities/Permission";
+import type { PermissionCatalog } from "../../domain/entities/PermissionCatalog";
 import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
 } from "../../domain/repositories/RequestOptions";
 import type { PermissionRepository } from "../../domain/repositories/PermissionRepository";
+import type { PermissionId } from "../../domain/value-objects/PermissionId";
 import {
   mapPermissionApiToDomain,
+  mapPermissionCatalogApiToDomain,
   type ApiPermission,
+  type ApiPermissionCatalog,
 } from "@modules/auth-context/infrastructure/mappers/authContextMapper";
 import type { HttpClient } from "../../../../shared/infrastructure/http/HttpClient";
 import { httpCore } from "../../../../shared/infrastructure/http/httpCore";
 import { toIdempotentProtectedConfig, toProtectedConfig } from "./httpConfig";
+
+type PermissionBody = { resource: string; action: string };
 
 export class HttpPermissionRepository implements PermissionRepository {
   private readonly httpClient: HttpClient;
@@ -21,80 +27,57 @@ export class HttpPermissionRepository implements PermissionRepository {
   }
 
   async create(
-    command: { tenantId: string; resource: string; action: string },
+    command: PermissionBody,
     options: IdempotentProtectedRequestOptions,
-  ): Promise<void> {
-    await this.httpClient.post<
-      void,
-      {
-        tenant_id: string;
-        resource: string;
-        action: string;
-      }
-    >(
+  ): Promise<Permission> {
+    const response = await this.httpClient.post<ApiPermission, PermissionBody>(
       AuthContextEndpoints.permissions.create,
-      {
-        tenant_id: command.tenantId,
-        resource: command.resource,
-        action: command.action,
-      },
+      { resource: command.resource, action: command.action },
       toIdempotentProtectedConfig(options),
     );
+    return mapPermissionApiToDomain(response);
   }
 
-  async list(
-    query: { tenantId: string },
-    options: ProtectedRequestOptions,
-  ): Promise<Permission[]> {
-    const response = await this.httpClient.get<ApiPermission[]>(
-      AuthContextEndpoints.permissions.list(query.tenantId),
+  async list(options: ProtectedRequestOptions): Promise<Permission[]> {
+    const response = await this.httpClient.get<ApiPermission[] | null>(
+      AuthContextEndpoints.permissions.list,
       toProtectedConfig(options),
     );
+    return (response ?? []).map(mapPermissionApiToDomain);
+  }
 
-    return response.map(mapPermissionApiToDomain);
+  async catalog(options: ProtectedRequestOptions): Promise<PermissionCatalog> {
+    const response = await this.httpClient.get<ApiPermissionCatalog>(
+      AuthContextEndpoints.permissions.catalog,
+      toProtectedConfig(options),
+    );
+    return mapPermissionCatalogApiToDomain(response);
   }
 
   async getById(
-    query: { permissionId: string },
+    query: { permissionId: PermissionId },
     options: ProtectedRequestOptions,
   ): Promise<Permission> {
     const response = await this.httpClient.get<ApiPermission>(
       AuthContextEndpoints.permissions.getById(query.permissionId),
       toProtectedConfig(options),
     );
-
     return mapPermissionApiToDomain(response);
   }
 
   async update(
-    command: {
-      permissionId: string;
-      tenantId: string;
-      resource: string;
-      action: string;
-    },
+    command: { permissionId: PermissionId } & PermissionBody,
     options: IdempotentProtectedRequestOptions,
   ): Promise<void> {
-    await this.httpClient.put<
-      void,
-      {
-        tenant_id: string;
-        resource: string;
-        action: string;
-      }
-    >(
+    await this.httpClient.put<void, PermissionBody>(
       AuthContextEndpoints.permissions.update(command.permissionId),
-      {
-        tenant_id: command.tenantId,
-        resource: command.resource,
-        action: command.action,
-      },
+      { resource: command.resource, action: command.action },
       toIdempotentProtectedConfig(options),
     );
   }
 
   async delete(
-    command: { permissionId: string },
+    command: { permissionId: PermissionId },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void> {
     await this.httpClient.delete<void>(

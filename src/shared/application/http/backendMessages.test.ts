@@ -17,6 +17,33 @@ describe("translateBackendMessage", () => {
         expect(translateBackendMessage(message)).toBe(expected);
     });
 
+    it.each([
+        "insufficient permissions",
+        "cannot grant privileges you do not have",
+        "role name is required",
+        "role name already exists",
+        "role is assigned to users",
+        "protected administrative role",
+        "permission resource is required",
+        "permission action is required",
+        "permission already exists",
+        "permission is assigned to roles",
+        "protected administrative permission",
+        "operation would leave the tenant without an administrator",
+        "unknown permission resource",
+        "unknown permission action",
+    ])("traduce el mensaje RBAC %s", (message) => {
+        const translated = translateBackendMessage(message);
+        expect(translated).not.toBe(message);
+        expect(translated.length).toBeGreaterThan(0);
+    });
+
+    it("explica que un rol asignado debe quitarse antes de eliminarlo", () => {
+        expect(translateBackendMessage("role is assigned to users")).toBe(
+            "El rol está asignado a usuarios. Quítalo de esos usuarios antes de eliminarlo.",
+        );
+    });
+
     it("no distingue mayúsculas ni espacios a los lados", () => {
         expect(translateBackendMessage("  Tenant Code Already Exists ")).toBe("Ya existe una empresa con ese código.");
     });

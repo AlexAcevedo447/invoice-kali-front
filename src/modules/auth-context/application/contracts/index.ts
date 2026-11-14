@@ -34,7 +34,6 @@ export type {
 
 export type {
   CreateRoleCommand,
-  ListRolesQuery,
   GetRoleByIdQuery,
   UpdateRoleCommand,
   DeleteRoleCommand,
@@ -44,7 +43,6 @@ export type {
 
 export type {
   CreatePermissionCommand,
-  ListPermissionsQuery,
   GetPermissionByIdQuery,
   UpdatePermissionCommand,
   DeletePermissionCommand,

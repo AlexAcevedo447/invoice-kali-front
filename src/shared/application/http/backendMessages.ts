@@ -23,6 +23,27 @@ const KNOWN_MESSAGES: Record<string, string> = {
   "tenant status must be active or suspended": "El estado de la empresa debe ser activa o suspendida.",
   "tenant_id is required": "Falta indicar la empresa.",
   "platform tenant cannot be suspended": "La empresa de la plataforma no se puede suspender.",
+  // Roles, permisos y asignaciones (RBAC, incremento 2)
+  "insufficient permissions": "No tienes permiso para realizar esta acción.",
+  "cannot grant privileges you do not have":
+    "No puedes otorgar permisos que tú mismo no tienes.",
+  "role name is required": "El nombre del rol es obligatorio.",
+  "role name already exists": "Ya existe un rol con ese nombre en tu empresa.",
+  "role is assigned to users":
+    "El rol está asignado a usuarios. Quítalo de esos usuarios antes de eliminarlo.",
+  "protected administrative role":
+    "El rol administrador de la plataforma está protegido: no se puede modificar, eliminar ni quitarle su permiso.",
+  "permission resource is required": "El recurso del permiso es obligatorio.",
+  "permission action is required": "La acción del permiso es obligatoria.",
+  "permission already exists": "Ya existe un permiso con ese recurso y acción en tu empresa.",
+  "permission is assigned to roles":
+    "El permiso está asignado a roles. Quítalo de esos roles antes de modificarlo o eliminarlo.",
+  "protected administrative permission":
+    "El permiso administrativo de la plataforma (*/*) está protegido: no se puede modificar ni eliminar.",
+  "operation would leave the tenant without an administrator":
+    "La operación dejaría a la empresa sin ningún administrador. Asigna antes el acceso administrativo a otro usuario.",
+  "unknown permission resource": "El recurso no está en el catálogo de permisos.",
+  "unknown permission action": "La acción no es válida para ese recurso.",
   // Usuarios
   "a user with this email already exists for this tenant":
     "Ya existe un usuario registrado con este correo electrónico.",

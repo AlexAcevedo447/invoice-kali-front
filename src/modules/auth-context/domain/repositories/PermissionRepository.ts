@@ -1,29 +1,24 @@
 import type { Permission } from "@modules/auth-context/domain/entities/Permission";
+import type { PermissionCatalog } from "@modules/auth-context/domain/entities/PermissionCatalog";
 import type {
   IdempotentProtectedRequestOptions,
   ProtectedRequestOptions,
 } from "@modules/auth-context/domain/repositories/RequestOptions";
 import type { PermissionId } from "../value-objects/PermissionId";
-import type { TenantId } from "../value-objects/TenantId";
 
+/** Opera siempre en la empresa del token (la interfaz no envía tenant_id). */
 export interface PermissionRepository {
   create(
-    command: { tenantId: TenantId; resource: string; action: string },
+    command: { resource: string; action: string },
     options: IdempotentProtectedRequestOptions,
-  ): Promise<void>;
+  ): Promise<Permission>;
 
-  list(
-    query: { tenantId: TenantId },
-    options: ProtectedRequestOptions,
-  ): Promise<Permission[]>;
+  list(options: ProtectedRequestOptions): Promise<Permission[]>;
+
+  catalog(options: ProtectedRequestOptions): Promise<PermissionCatalog>;
 
   update(
-    command: {
-      permissionId: PermissionId;
-      tenantId: TenantId;
-      resource: string;
-      action: string;
-    },
+    command: { permissionId: PermissionId; resource: string; action: string },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void>;
 

@@ -44,14 +44,13 @@ export const UserCreateForm = () => {
     useEffect(() => {
         if (!accessToken || !tenantId) return;
         let cancelled = false;
-        const tenant = toTenantId(tenantId);
         application.authContext.roles
-            .list({ tenantId: tenant }, { accessToken })
+            .list({ accessToken })
             .then((allRoles) =>
                 Promise.all(
                     allRoles.map(async (role) => {
                         const links = await application.authContext.rbac.getRolePermissions(
-                            { tenantId: tenant, roleId: role.id },
+                            { roleId: role.id },
                             { accessToken }
                         );
                         return links.length > 0 ? role : null;
@@ -132,7 +131,6 @@ export const UserCreateForm = () => {
             );
             await application.authContext.rbac.assignUserRole(
                 {
-                    tenantId: toTenantId(tenantId),
                     userId: toUserId(String(user.id)),
                     roleId: toRoleId(values.roleId),
                 },

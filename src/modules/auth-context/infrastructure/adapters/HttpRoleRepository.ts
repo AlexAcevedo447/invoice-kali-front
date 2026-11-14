@@ -5,6 +5,7 @@ import type {
   ProtectedRequestOptions,
 } from "../../domain/repositories/RequestOptions";
 import type { RoleRepository } from "../../domain/repositories/RoleRepository";
+import type { RoleId } from "../../domain/value-objects/RoleId";
 import {
   mapRoleApiToDomain,
   type ApiRole,
@@ -12,6 +13,8 @@ import {
 import type { HttpClient } from "../../../../shared/infrastructure/http/HttpClient";
 import { httpCore } from "../../../../shared/infrastructure/http/httpCore";
 import { toIdempotentProtectedConfig, toProtectedConfig } from "./httpConfig";
+
+type RoleBody = { name: string; description: string };
 
 export class HttpRoleRepository implements RoleRepository {
   private readonly httpClient: HttpClient;
@@ -21,80 +24,49 @@ export class HttpRoleRepository implements RoleRepository {
   }
 
   async create(
-    command: { tenantId: string; name: string; description: string },
+    command: RoleBody,
     options: IdempotentProtectedRequestOptions,
-  ): Promise<void> {
-    await this.httpClient.post<
-      void,
-      {
-        tenant_id: string;
-        name: string;
-        description: string;
-      }
-    >(
+  ): Promise<Role> {
+    const response = await this.httpClient.post<ApiRole, RoleBody>(
       AuthContextEndpoints.roles.create,
-      {
-        tenant_id: command.tenantId,
-        name: command.name,
-        description: command.description,
-      },
+      { name: command.name, description: command.description },
       toIdempotentProtectedConfig(options),
     );
+    return mapRoleApiToDomain(response);
   }
 
-  async list(
-    query: { tenantId: string },
-    options: ProtectedRequestOptions,
-  ): Promise<Role[]> {
-    const response = await this.httpClient.get<ApiRole[]>(
-      AuthContextEndpoints.roles.list(query.tenantId),
+  async list(options: ProtectedRequestOptions): Promise<Role[]> {
+    const response = await this.httpClient.get<ApiRole[] | null>(
+      AuthContextEndpoints.roles.list,
       toProtectedConfig(options),
     );
-
-    return response.map(mapRoleApiToDomain);
+    return (response ?? []).map(mapRoleApiToDomain);
   }
 
   async getById(
-    query: { roleId: string },
+    query: { roleId: RoleId },
     options: ProtectedRequestOptions,
   ): Promise<Role> {
     const response = await this.httpClient.get<ApiRole>(
       AuthContextEndpoints.roles.getById(query.roleId),
       toProtectedConfig(options),
     );
-
     return mapRoleApiToDomain(response);
   }
 
   async update(
-    command: {
-      roleId: string;
-      tenantId: string;
-      name: string;
-      description: string;
-    },
+    command: { roleId: RoleId } & RoleBody,
     options: IdempotentProtectedRequestOptions,
   ): Promise<void> {
-    await this.httpClient.put<
-      void,
-      {
-        tenant_id: string;
-        name: string;
-        description: string;
-      }
-    >(
+    await this.httpClient.put<void, RoleBody>(
       AuthContextEndpoints.roles.update(command.roleId),
-      {
-        tenant_id: command.tenantId,
-        name: command.name,
-        description: command.description,
-      },
+      { name: command.name, description: command.description },
       toIdempotentProtectedConfig(options),
     );
   }
 
   async delete(
-    command: { roleId: string },
+    command: { roleId: RoleId },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void> {
     await this.httpClient.delete<void>(

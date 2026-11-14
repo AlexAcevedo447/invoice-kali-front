@@ -1,13 +1,10 @@
 import type { Permission } from "@modules/auth-context/domain/entities/Permission";
+import type { PermissionCatalog } from "@modules/auth-context/domain/entities/PermissionCatalog";
 
+// La empresa la toma el servidor del token: los comandos no llevan tenantId.
 export interface CreatePermissionCommand {
-  tenantId: string;
   resource: string;
   action: string;
-}
-
-export interface ListPermissionsQuery {
-  tenantId: string;
 }
 
 export interface GetPermissionByIdQuery {
@@ -16,7 +13,6 @@ export interface GetPermissionByIdQuery {
 
 export interface UpdatePermissionCommand {
   permissionId: string;
-  tenantId: string;
   resource: string;
   action: string;
 }
@@ -27,3 +23,4 @@ export interface DeletePermissionCommand {
 
 export type PermissionResult = Permission;
 export type PermissionListResult = Permission[];
+export type PermissionCatalogResult = PermissionCatalog;

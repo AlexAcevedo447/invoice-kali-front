@@ -5,12 +5,18 @@ import { getSessionExpiry, useAuthSessionStore } from "../state/authSessionStore
 import type { AuthSessionState } from "../state/authSessionStore";
 import { useInvoicingStore } from "../state/invoicingStore";
 import { ROUTES } from "../routing/routes";
-import { canAccessAdminModule, canAccessInvoicingModule, canManageTenants } from "../routing/access";
+import {
+    canAccessAdminModule,
+    canAccessInvoicingModule,
+    canManageTenants,
+    canReadPermissions,
+    canReadRoles,
+} from "../routing/access";
 
 /**
  * Barra superior de la zona autenticada. Solo enlaza módulos con funcionalidad
- * real y solo si la sesión tiene permiso para verlos (Empresas: solo la
- * empresa de plataforma).
+ * real y solo si la sesión tiene permiso para verlos (Roles: roles/read;
+ * Permisos: permissions/read; Empresas: solo la empresa de plataforma).
  */
 export const AppLayout = () => {
     const navigate = useNavigate();
@@ -44,6 +50,12 @@ export const AppLayout = () => {
     }
     if (canAccessAdminModule(roles, permissions)) {
         links.push({ to: ROUTES.admin.users, label: "Usuarios", cy: "nav-users" });
+    }
+    if (canReadRoles(permissions)) {
+        links.push({ to: ROUTES.admin.roles, label: "Roles", cy: "nav-roles" });
+    }
+    if (canReadPermissions(permissions)) {
+        links.push({ to: ROUTES.admin.permissions, label: "Permisos", cy: "nav-permissions" });
     }
     if (canManageTenants(isPlatformTenant, permissions)) {
         links.push({ to: ROUTES.admin.tenants, label: "Empresas", cy: "nav-tenants" });

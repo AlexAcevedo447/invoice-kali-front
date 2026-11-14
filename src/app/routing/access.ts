@@ -109,6 +109,53 @@ export const canManageTenants = (
     );
   });
 
+/**
+ * Regla de autorización del servidor (kali-auth-context, MATRIZ_PERMISOS.md):
+ * un permiso cubre (recurso, acción) si el recurso coincide o es "*", y la
+ * acción coincide o es "*"; además `manage` incluye `read`. Comparación sin
+ * mayúsculas ni espacios a los lados. Solo decide qué muestra la interfaz.
+ */
+export const permissionCovers = (
+  permission: { resource: string; action: string },
+  resource: string,
+  action: string,
+): boolean => {
+  const granted = { resource: normalize(permission.resource), action: normalize(permission.action) };
+  const required = { resource: normalize(resource), action: normalize(action) };
+  const resourceOk = granted.resource === "*" || granted.resource === required.resource;
+  const actionOk =
+    granted.action === "*" ||
+    granted.action === required.action ||
+    (granted.action === "manage" && required.action === "read");
+  return resourceOk && actionOk;
+};
+
+export const hasPermission = (
+  permissions: SessionPermission[],
+  resource: string,
+  action: string,
+): boolean => permissions.some((permission) => permissionCovers(permission, resource, action));
+
+/** Ver roles (roles/read; roles/manage lo incluye). */
+export const canReadRoles = (permissions: SessionPermission[]): boolean =>
+  hasPermission(permissions, "roles", "read");
+
+/** Crear, editar y eliminar roles (roles/manage). */
+export const canManageRoles = (permissions: SessionPermission[]): boolean =>
+  hasPermission(permissions, "roles", "manage");
+
+/** Ver permisos (permissions/read; permissions/manage lo incluye). */
+export const canReadPermissions = (permissions: SessionPermission[]): boolean =>
+  hasPermission(permissions, "permissions", "read");
+
+/** Crear, editar y eliminar permisos (permissions/manage). */
+export const canManagePermissions = (permissions: SessionPermission[]): boolean =>
+  hasPermission(permissions, "permissions", "manage");
+
+/** Asignar y quitar roles a usuarios y permisos a roles (rbac/manage). */
+export const canManageAssignments = (permissions: SessionPermission[]): boolean =>
+  hasPermission(permissions, "rbac", "manage");
+
 export const resolveHomeRoute = (
   roles: string[],
   permissions: SessionPermission[],

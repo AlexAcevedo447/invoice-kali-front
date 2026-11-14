@@ -33,18 +33,19 @@ export const AuthContextEndpoints = {
     suspend: (tenantId: string) =>
       `/api/v1/tenants/${encodeURIComponent(tenantId)}/suspend`,
   },
+  // RBAC: la empresa la toma el servidor del token; la interfaz solo administra
+  // la empresa de la sesión, así que no envía tenant_id.
   roles: {
     create: "/api/v1/roles",
-    list: (tenantId: string) =>
-      `/api/v1/roles?tenant_id=${encodeURIComponent(tenantId)}`,
+    list: "/api/v1/roles",
     getById: (roleId: string) => `/api/v1/roles/${encodeURIComponent(roleId)}`,
     update: (roleId: string) => `/api/v1/roles/${encodeURIComponent(roleId)}`,
     delete: (roleId: string) => `/api/v1/roles/${encodeURIComponent(roleId)}`,
   },
   permissions: {
     create: "/api/v1/permissions",
-    list: (tenantId: string) =>
-      `/api/v1/permissions?tenant_id=${encodeURIComponent(tenantId)}`,
+    list: "/api/v1/permissions",
+    catalog: "/api/v1/permissions/catalog",
     getById: (permissionId: string) =>
       `/api/v1/permissions/${encodeURIComponent(permissionId)}`,
     update: (permissionId: string) =>
@@ -57,12 +58,12 @@ export const AuthContextEndpoints = {
     removeUserRole: "/api/v1/rbac/users/roles/remove",
     assignRolePermission: "/api/v1/rbac/roles/permissions/assign",
     removeRolePermission: "/api/v1/rbac/roles/permissions/remove",
-    getUserRoles: (tenantId: string, userId: string) =>
-      `/api/v1/rbac/users/roles?tenant_id=${encodeURIComponent(tenantId)}&user_id=${encodeURIComponent(userId)}`,
-    getRolePermissions: (tenantId: string, roleId: string) =>
-      `/api/v1/rbac/roles/permissions?tenant_id=${encodeURIComponent(tenantId)}&role_id=${encodeURIComponent(roleId)}`,
-    getUserEffectivePermissions: (tenantId: string, userId: string) =>
-      `/api/v1/rbac/users/effective-permissions?tenant_id=${encodeURIComponent(tenantId)}&user_id=${encodeURIComponent(userId)}`,
+    getUserRoles: (userId: string) =>
+      `/api/v1/rbac/users/roles?user_id=${encodeURIComponent(userId)}`,
+    getRolePermissions: (roleId: string) =>
+      `/api/v1/rbac/roles/permissions?role_id=${encodeURIComponent(roleId)}`,
+    getUserEffectivePermissions: (userId: string) =>
+      `/api/v1/rbac/users/effective-permissions?user_id=${encodeURIComponent(userId)}`,
   },
 } as const;
 

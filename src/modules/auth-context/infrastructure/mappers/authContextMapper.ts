@@ -1,12 +1,13 @@
 import type { AuthSession } from "../../domain/entities/AuthSession";
 import type { AuthorizationDecision } from "../../domain/entities/AuthorizationDecision";
 import type { Permission } from "../../domain/entities/Permission";
+import type { PermissionCatalog } from "../../domain/entities/PermissionCatalog";
 import type { Role } from "../../domain/entities/Role";
 import type { ServiceHealth } from "../../domain/entities/ServiceHealth";
 import type { Tenant } from "../../domain/entities/Tenant";
 import type { User } from "../../domain/entities/User";
-import { toPermissionId } from "../../domain/value-objects/PermissionId";
-import { toRoleId } from "../../domain/value-objects/RoleId";
+import { toPermissionId, type PermissionId } from "../../domain/value-objects/PermissionId";
+import { toRoleId, type RoleId } from "../../domain/value-objects/RoleId";
 import { toTenantId } from "../../domain/value-objects/TenantId";
 import { toUserId } from "../../domain/value-objects/UserId";
 export interface ApiHealthResponse {
@@ -73,6 +74,28 @@ export interface ApiPermission {
   Action: string;
 }
 
+/** Vínculo usuario↔rol (GET /rbac/users/roles). */
+export interface ApiUserRoleLink {
+  TenantId?: string;
+  UserId?: string;
+  RoleId?: string;
+  /** Tolerancia: algunas versiones podrían devolver el rol completo. */
+  Id?: string;
+}
+
+/** Vínculo rol↔permiso (GET /rbac/roles/permissions). */
+export interface ApiRolePermissionLink {
+  TenantId?: string;
+  RoleId?: string;
+  PermissionId?: string;
+  /** Tolerancia: algunas versiones podrían devolver el permiso completo. */
+  Id?: string;
+}
+
+export interface ApiPermissionCatalog {
+  resources?: Array<{ resource: string; actions?: string[] | null }> | null;
+}
+
 export const mapHealthApiToDomain = (
   input: ApiHealthResponse,
 ): ServiceHealth => ({
@@ -135,4 +158,26 @@ export const mapPermissionApiToDomain = (input: ApiPermission): Permission => ({
   tenantId: toTenantId(input.TenantId),
   resource: input.Resource,
   action: input.Action,
+});
+
+const uniqueIds = <T extends string>(ids: Array<string | undefined>, brand: (v: string) => T): T[] =>
+  [...new Set(ids.filter((id): id is string => typeof id === "string" && id !== ""))].map(brand);
+
+export const mapUserRoleLinksToRoleIds = (
+  input: ApiUserRoleLink[] | null | undefined,
+): RoleId[] => uniqueIds((input ?? []).map((link) => link.RoleId ?? link.Id), toRoleId);
+
+export const mapRolePermissionLinksToPermissionIds = (
+  input: ApiRolePermissionLink[] | null | undefined,
+): PermissionId[] =>
+  uniqueIds((input ?? []).map((link) => link.PermissionId ?? link.Id), toPermissionId);
+
+/** Normaliza el catálogo: recursos y acciones en minúsculas y sin espacios. */
+export const mapPermissionCatalogApiToDomain = (
+  input: ApiPermissionCatalog | null | undefined,
+): PermissionCatalog => ({
+  resources: (input?.resources ?? []).map((entry) => ({
+    resource: entry.resource.trim().toLowerCase(),
+    actions: (entry.actions ?? []).map((action) => action.trim().toLowerCase()),
+  })),
 });
