@@ -8,11 +8,16 @@ import type { TenantId } from "../value-objects/TenantId";
 import type { UserId } from "../value-objects/UserId";
 
 export interface AuthRepository {
+  /**
+   * El tenant nunca lo envía el cliente: el servidor lo resuelve a partir de la
+   * cuenta. `tenantCode` (código legible de empresa) solo se envía cuando el
+   * servidor lo pide porque el correo existe en varias empresas.
+   */
   login(
     command: {
-      tenantId: TenantId;
       email: string;
       password: string;
+      tenantCode?: string;
     },
     options?: RequestOptions,
   ): Promise<AuthSession>;

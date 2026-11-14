@@ -20,6 +20,8 @@ export interface InvoiceItemApi {
   ID: string;
   InvoiceID: string;
   ItemID: string;
+  ProductCode?: string;
+  ProductName?: string;
   Quantity: number;
   UnitPrice: number;
   Taxes: InvoiceTaxApi[];
@@ -31,6 +33,8 @@ export interface InvoiceItemApi {
 export interface InvoiceApi {
   ID: string;
   CustomerID: string;
+  CustomerName?: string;
+  CustomerDocument?: string;
   IssueDate?: string;
   DueDate?: string;
   Items: InvoiceItemApi[];
@@ -71,6 +75,8 @@ export const mapInvoiceItemApiToDomain = (
   id: toInvoiceItemId(input.ID),
   invoiceId: toInvoiceId(input.InvoiceID),
   itemId: input.ItemID,
+  productCode: input.ProductCode ?? "",
+  productName: input.ProductName ?? "",
   quantity: input.Quantity,
   unitPrice: input.UnitPrice,
   taxes: input.Taxes.map(mapInvoiceTaxApiToDomain),
@@ -82,6 +88,8 @@ export const mapInvoiceItemApiToDomain = (
 export const mapInvoiceApiToDomain = (input: InvoiceApi): Invoice => ({
   id: toInvoiceId(input.ID),
   customerId: input.CustomerID,
+  customerName: input.CustomerName ?? "",
+  customerDocument: input.CustomerDocument ?? "",
   issueDate: input.IssueDate ? new Date(input.IssueDate) : null,
   dueDate: input.DueDate ? new Date(input.DueDate) : null,
   items: input.Items.map(mapInvoiceItemApiToDomain),

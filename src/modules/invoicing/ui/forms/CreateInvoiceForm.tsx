@@ -27,6 +27,22 @@ import { FormField } from "@shared/ui/forms/FormField";
 import { SubmitButton } from "@shared/ui/forms/SubmitButton";
 import type { CreateInvoiceFormProps } from "@modules/invoicing/ui/forms/CreateInvoiceForm/createInvoiceForm.types";
 import { useCreateInvoiceForm } from "@modules/invoicing/ui/forms/CreateInvoiceForm/useCreateInvoiceForm";
+import { Controller } from "react-hook-form";
+import { CatalogSelect, type CatalogOption } from "@modules/invoicing/ui/components/CatalogSelect";
+import { catalogApi } from "@modules/invoicing/infrastructure/catalog/catalogApi";
+import type { Customer, Product } from "@modules/invoicing/domain/entities/Catalog";
+
+// Búsquedas en los catálogos del tenant: el usuario ve nombres, documentos y
+// códigos; el UUID solo se conserva como valor interno del formulario.
+const searchCustomers = async (query: string): Promise<CatalogOption<Customer>[]> => {
+    const { items } = await catalogApi.listCustomers(query);
+    return items.map((c) => ({ id: c.id, label: `${c.name} — ${c.document}`, entity: c }));
+};
+
+const searchProducts = async (query: string): Promise<CatalogOption<Product>[]> => {
+    const { items } = await catalogApi.listProducts(query);
+    return items.map((p) => ({ id: p.id, label: `${p.code} — ${p.name}`, entity: p }));
+};
 
 
 export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
@@ -40,6 +56,15 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
         appendItem,
         removeItem,
     } = useCreateInvoiceForm(props);
+    const { invoiceToEdit } = props;
+    const customerOption: CatalogOption<Customer> | undefined = invoiceToEdit
+        ? {
+              id: invoiceToEdit.customerId,
+              label: invoiceToEdit.customerName
+                  ? `${invoiceToEdit.customerName} — ${invoiceToEdit.customerDocument}`
+                  : "Cliente actual",
+          }
+        : undefined;
 
     return (
         <section className="surface-card p-4 border-round border-1 border-300">
@@ -48,15 +73,25 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                 {/* Main fields */}
                 <FormField
                     id="customerId"
-                    label="Customer ID"
+                    label="Cliente"
                     required
                     error={getErrorMessage(form.formState.errors, ["customerId"])}
                 >
-                    <input
-                        id="customerId"
-                        type="text"
-                        className="p-inputtext p-component w-full"
-                        {...form.register("customerId")}
+                    <Controller
+                        control={form.control}
+                        name="customerId"
+                        render={({ field, fieldState }) => (
+                            <CatalogSelect<Customer>
+                                inputId="customerId"
+                                cy="customer-select"
+                                value={field.value}
+                                onChange={(id) => field.onChange(id)}
+                                search={searchCustomers}
+                                initialOption={customerOption}
+                                placeholder="Buscar cliente por nombre o documento"
+                                invalid={Boolean(fieldState.error)}
+                            />
+                        )}
                     />
                 </FormField>
 
@@ -121,19 +156,52 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                         </div>
 
                         <div className="grid">
-                            <div className="col-12 md:col-4">
+                            <div className="col-12">
                                 <FormField
                                     id={`items.${index}.itemId`}
-                                    label="Item ID"
+                                    label="Producto"
                                     required
                                     error={getErrorMessage(form.formState.errors, ["items", index, "itemId"])}
                                 >
-                                    <input
-                                        id={`items.${index}.itemId`}
-                                        type="text"
-                                        className="p-inputtext p-component w-full"
-                                        disabled={isEditMode && Boolean(field.lineId)}
-                                        {...form.register(`items.${index}.itemId`)}
+                                    <Controller
+                                        control={form.control}
+                                        name={`items.${index}.itemId`}
+                                        render={({ field: productField, fieldState }) => {
+                                            // En líneas guardadas el producto no cambia (el backend no
+                                            // lo permite): se muestra su código y nombre.
+                                            const savedLine = invoiceToEdit?.items.find(
+                                                (line) => String(line.id) === field.lineId,
+                                            );
+                                            return (
+                                                <CatalogSelect<Product>
+                                                    inputId={`items.${index}.itemId`}
+                                                    cy={`product-select-${index}`}
+                                                    value={productField.value}
+                                                    onChange={(id, product) => {
+                                                        productField.onChange(id);
+                                                        if (product && product.unitPrice > 0) {
+                                                            form.setValue(`items.${index}.unitPrice`, product.unitPrice, {
+                                                                shouldValidate: true,
+                                                            });
+                                                        }
+                                                    }}
+                                                    search={searchProducts}
+                                                    initialOption={
+                                                        savedLine
+                                                            ? {
+                                                                  id: savedLine.itemId,
+                                                                  label: savedLine.productName
+                                                                      ? `${savedLine.productCode} — ${savedLine.productName}`
+                                                                      : "Producto actual",
+                                                              }
+                                                            : undefined
+                                                    }
+                                                    placeholder="Buscar producto por código o nombre"
+                                                    disabled={isEditMode && Boolean(field.lineId)}
+                                                    invalid={Boolean(fieldState.error)}
+                                                />
+                                            );
+                                        }}
                                     />
                                 </FormField>
                             </div>

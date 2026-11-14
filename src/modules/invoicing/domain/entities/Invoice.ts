@@ -5,7 +5,11 @@ export type InvoiceStatus = "PENDING" | "PAID" | "CANCELED";
 
 export interface Invoice {
   id: InvoiceId;
+  /** Identificador interno del cliente (no se muestra al usuario). */
   customerId: string;
+  /** Datos legibles del cliente, resueltos por el servidor desde el catálogo. */
+  customerName: string;
+  customerDocument: string;
   issueDate: Date | null;
   dueDate: Date | null;
   items: InvoiceItem[];

@@ -9,11 +9,8 @@ export const taxSchema = z.object({
 export const itemSchema = z.object({
   // Id de la línea ya guardada (invoice-items); vacío en líneas nuevas.
   lineId: z.string().optional(),
-  // El servicio de facturación exige UUID en item_id y customer_id.
-  itemId: z
-    .string()
-    .min(1, "Item ID is required")
-    .uuid("Item ID must be a valid UUID"),
+  // El producto se elige en el catálogo; el UUID es solo el valor interno.
+  itemId: z.string().min(1, "Selecciona un producto"),
   quantity: z.coerce.number().gt(0, "Quantity must be > 0"),
   unitPrice: z.coerce.number().gt(0, "Unit price must be > 0"),
   taxes: z.array(taxSchema).min(1, "At least one tax is required"),
@@ -21,10 +18,7 @@ export const itemSchema = z.object({
 
 export const createInvoiceSchema = z
   .object({
-    customerId: z
-      .string()
-      .min(1, "Customer ID is required")
-      .uuid("Customer ID must be a valid UUID"),
+    customerId: z.string().min(1, "Selecciona un cliente"),
     issueDate: z.string().optional(),
     dueDate: z.string().optional(),
     items: z.array(itemSchema).min(1, "At least one item is required"),

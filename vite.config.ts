@@ -56,6 +56,15 @@ export default defineConfig(({ mode }) => {
           target: invoicingProxyTarget,
           changeOrigin: true,
         },
+        // Catálogos de facturación (clientes y productos del tenant).
+        "/api/v1/customers": {
+          target: invoicingProxyTarget,
+          changeOrigin: true,
+        },
+        "/api/v1/products": {
+          target: invoicingProxyTarget,
+          changeOrigin: true,
+        },
         "/api": {
           target: authProxyTarget,
           changeOrigin: true,

@@ -6,7 +6,7 @@ export type AuthContextService = {
   health: AuthContextRepositories["healthRepository"];
   auth: {
     login: (
-      command: { tenantId: string; email: string; password: string },
+      command: { email: string; password: string; tenantCode?: string },
       options?: Parameters<
         AuthContextRepositories["authRepository"]["login"]
       >[1],
@@ -37,10 +37,7 @@ export const createAuthContextService = (
     health: repositories.healthRepository,
     auth: {
       login: (command, options) =>
-        repositories.authRepository.login(
-          { ...command, tenantId: toTenantId(command.tenantId) },
-          options,
-        ),
+        repositories.authRepository.login(command, options),
       authorize: (command, options) =>
         repositories.authRepository.authorize(
           {

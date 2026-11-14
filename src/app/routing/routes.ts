@@ -11,6 +11,8 @@ export const ROUTES = {
   invoicing: {
     root: "/invoicing",
     invoices: "/invoicing/invoices",
+    customers: "/invoicing/customers",
+    products: "/invoicing/products",
     invoiceItems: "/invoicing/invoice-items",
   },
 } as const;

@@ -6,7 +6,11 @@ export interface AuthSession {
   accessToken: string;
   tokenType: "Bearer" | string;
   expiresIn: number;
+  /** Identificador técnico del tenant: solo de uso interno, nunca se muestra. */
   tenantId: TenantId;
+  /** Nombre y código legibles de la empresa, para mostrar al usuario. */
+  tenantName: string;
+  tenantCode: string;
   userId: UserId;
   email: string;
   needsRehash: boolean;

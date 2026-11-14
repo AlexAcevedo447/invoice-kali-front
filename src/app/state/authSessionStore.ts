@@ -6,7 +6,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { ApplicationServices } from "../application/Application";
 import type { AuthSession } from "../../modules/auth-context/domain/entities/AuthSession";
-import { toTenantId } from "../../modules/auth-context/domain/value-objects/TenantId";
+import { HttpError } from "../../shared/application/http/HttpError";
 import { decodeJwtClaims } from "../../shared/infrastructure/jwt/decodeJwtClaims";
 
 type AuthContextService = ApplicationServices["authContext"];
@@ -14,9 +14,10 @@ type SessionPermission = AuthSession["permissions"][number];
 const AUTH_SESSION_STORAGE_KEY = "auth-session-store";
 
 interface LoginPayload {
-  tenantId: string;
   email: string;
   password: string;
+  /** Código legible de empresa: solo cuando el servidor lo exige. */
+  tenantCode?: string;
 }
 
 export interface AuthSessionState {
@@ -24,6 +25,7 @@ export interface AuthSessionState {
   status: "anonymous" | "authenticated";
   accessToken: string | null;
   tenantId: string | null;
+  tenantName: string | null;
   userId: string | null;
   email: string | null;
   roles: string[];
@@ -35,7 +37,7 @@ export interface AuthSessionState {
   isLoading: boolean;
   error: string | null;
   actions: {
-    login(payload: LoginPayload): Promise<{ success: boolean; error?: string }>;
+    login(payload: LoginPayload): Promise<{ success: boolean; error?: string; status?: number }>;
     logout(): void;
     /** Cierra la sesión por vencimiento/401 y deja pendiente el aviso. */
     expireSession(): void;
@@ -61,6 +63,7 @@ export const useAuthSessionStore = create<AuthSessionState>()(
       status: "anonymous",
       accessToken: null,
       tenantId: null,
+      tenantName: null,
       userId: null,
       email: null,
       roles: [],
@@ -77,14 +80,12 @@ export const useAuthSessionStore = create<AuthSessionState>()(
             return { success: false, error: "Ya en progreso" };
           set({ isLoading: true, error: null });
           try {
-            const session = await authContextService.auth.login({
-              ...payload,
-              tenantId: toTenantId(payload.tenantId),
-            });
+            const session = await authContextService.auth.login(payload);
             set({
               status: "authenticated",
               accessToken: session.accessToken,
               tenantId: String(session.tenantId),
+              tenantName: session.tenantName,
               userId: String(session.userId),
               email: session.email,
               roles: session.roles,
@@ -102,7 +103,8 @@ export const useAuthSessionStore = create<AuthSessionState>()(
               isLoading: false,
               error: errorMsg,
             });
-            return { success: false, error: errorMsg };
+            const status = error instanceof HttpError ? error.status : undefined;
+            return { success: false, error: errorMsg, status };
           }
         },
         logout() {
@@ -110,6 +112,7 @@ export const useAuthSessionStore = create<AuthSessionState>()(
             status: "anonymous",
             accessToken: null,
             tenantId: null,
+            tenantName: null,
             userId: null,
             email: null,
             roles: [],
@@ -179,6 +182,7 @@ export const useAuthSessionStore = create<AuthSessionState>()(
         status: state.status,
         accessToken: state.accessToken,
         tenantId: state.tenantId,
+        tenantName: state.tenantName,
         userId: state.userId,
         email: state.email,
         roles: state.roles,

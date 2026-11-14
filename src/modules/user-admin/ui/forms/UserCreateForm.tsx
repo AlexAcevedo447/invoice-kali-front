@@ -88,10 +88,8 @@ export const UserCreateForm = () => {
         },
     });
 
-    const onSubmit = form.handleSubmit(async (values: UserFormValues) => {
-        if (isSubmittingRef.current) return;
+    const submitValues = async (values: UserFormValues) => {
         if (!accessToken || !tenantId) return;
-        isSubmittingRef.current = true;
 
         try {
             await application.authContext.users.create(
@@ -123,7 +121,6 @@ export const UserCreateForm = () => {
                     life: 5000,
                 });
             }
-            isSubmittingRef.current = false;
             return;
         }
 
@@ -159,14 +156,20 @@ export const UserCreateForm = () => {
                 detail: `El usuario se creó, pero no se pudo asignar el rol: ${errorMessage(error)}`,
                 life: 6000,
             });
+        }
+    };
+
+    // La guarda contra envíos duplicados vive en el manejador del evento (no en
+    // render): cubre validación + peticiones y se libera siempre al terminar.
+    const onSafeSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (isSubmittingRef.current) return;
+        isSubmittingRef.current = true;
+        try {
+            await form.handleSubmit(submitValues)();
         } finally {
             isSubmittingRef.current = false;
         }
-    });
-
-    const onSafeSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        await onSubmit();
     };
 
     return (

@@ -14,6 +14,7 @@ import { canAccessAdminModule, canAccessInvoicingModule } from "../routing/acces
 export const AppLayout = () => {
     const navigate = useNavigate();
     const email = useAuthSessionStore((s: AuthSessionState) => s.email);
+    const tenantName = useAuthSessionStore((s: AuthSessionState) => s.tenantName);
     const roles = useAuthSessionStore((s: AuthSessionState) => s.roles);
     const permissions = useAuthSessionStore((s: AuthSessionState) => s.permissions);
     const logout = useAuthSessionStore((s: AuthSessionState) => s.actions.logout);
@@ -36,6 +37,8 @@ export const AppLayout = () => {
     const links: Array<{ to: string; label: string; cy: string }> = [];
     if (canAccessInvoicingModule(roles, permissions)) {
         links.push({ to: ROUTES.invoicing.invoices, label: "Facturas", cy: "nav-invoices" });
+        links.push({ to: ROUTES.invoicing.customers, label: "Clientes", cy: "nav-customers" });
+        links.push({ to: ROUTES.invoicing.products, label: "Productos", cy: "nav-products" });
     }
     if (canAccessAdminModule(roles, permissions)) {
         links.push({ to: ROUTES.admin.users, label: "Usuarios", cy: "nav-users" });
@@ -55,6 +58,11 @@ export const AppLayout = () => {
             >
                 <div className="flex align-items-center gap-4">
                     <span className="font-bold text-xl">Invoice Kali</span>
+                    {tenantName ? (
+                        <span data-cy="session-tenant" className="text-color-secondary">
+                            {tenantName}
+                        </span>
+                    ) : null}
                     <nav data-cy="app-nav" className="flex gap-2">
                         {links.map((link) => (
                             <NavLink

@@ -73,106 +73,108 @@ export function useCreateInvoiceForm({
     form.reset(mapInvoiceToCreateInvoiceFormValues(invoiceToEdit));
   }, [form, invoiceToEdit]);
 
-  const onSubmit = form.handleSubmit(
-    async (values: ReturnType<typeof getCreateInvoiceDefaultValues>) => {
-      if (isSubmittingRef.current) return;
-      isSubmittingRef.current = true;
-      try {
-        clearError();
-        setPersistError(null);
-        if (isEditMode && invoiceToEdit) {
-          const command = mapCreateInvoiceFormValuesToUpdateCommand(
-            values,
-            invoiceToEdit.id,
-          );
-          const result = await updateInvoice(command);
-          if (!result) return;
-          // Confirmar que el backend realmente guardó lo enviado antes de cerrar.
-          const sameCustomer = result.customerId === command.customerId;
-          const sameDueDate =
-            !command.dueDate ||
-            (result.dueDate !== null &&
-              result.dueDate.getTime() === new Date(command.dueDate).getTime());
-          if (!sameCustomer || !sameDueDate) {
-            setPersistError("La factura no se actualizó. Intenta nuevamente.");
-            return;
-          }
-
-          // Líneas: se aplican las diferencias con los endpoints de invoice-items.
-          const original = new Map(
-            invoiceToEdit.items.map((item) => [String(item.id), item]),
-          );
-          const keptLineIds = new Set(
-            values.items.map((item) => item.lineId).filter(Boolean),
-          );
-          for (const [index, item] of values.items.entries()) {
-            const taxes = toItemTaxes(item);
-            if (!item.lineId) {
-              const created = await createInvoiceItem({
-                invoiceId: invoiceToEdit.id,
-                itemId: item.itemId,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                taxes,
-              });
-              if (!created) return;
-              // Marca la línea como guardada para no duplicarla si se reintenta.
-              form.setValue(`items.${index}.lineId`, String(created.id));
-              continue;
-            }
-            const before = original.get(item.lineId);
-            if (!before) continue;
-            // El formulario solo muestra el impuesto principal de cada línea:
-            // se compara ese impuesto y se conservan los adicionales al guardar.
-            const [formTax] = taxes;
-            const beforeTax = before.taxes[0] ?? { code: "IVA", kind: "DEBIT", rate: 0 };
-            const changed =
-              before.quantity !== item.quantity ||
-              before.unitPrice !== item.unitPrice ||
-              beforeTax.code !== formTax.code ||
-              beforeTax.kind !== formTax.kind ||
-              beforeTax.rate !== formTax.rate;
-            if (changed) {
-              const keepNoTaxes = before.taxes.length === 0 && formTax.rate === 0;
-              const updated = await updateInvoiceItem({
-                id: item.lineId,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                taxes: keepNoTaxes
-                  ? []
-                  : [
-                      formTax,
-                      ...before.taxes
-                        .slice(1)
-                        .map((t) => ({ code: t.code, kind: t.kind, rate: t.rate })),
-                    ],
-              });
-              if (!updated) return;
-            }
-          }
-          for (const lineId of original.keys()) {
-            if (keptLineIds.has(lineId) || deletedLinesRef.current.has(lineId)) continue;
-            const deleted = await deleteInvoiceItem(lineId);
-            if (!deleted) return;
-            deletedLinesRef.current.add(lineId);
-          }
-
-          onSuccess?.();
-          return;
-        }
-        const result = await createInvoice(
-          mapCreateInvoiceFormValuesToCreateCommand(values),
-        );
-        if (result) onSuccess?.();
-      } finally {
-        isSubmittingRef.current = false;
+  const submitValues = async (
+    values: ReturnType<typeof getCreateInvoiceDefaultValues>,
+  ) => {
+    clearError();
+    setPersistError(null);
+    if (isEditMode && invoiceToEdit) {
+      const command = mapCreateInvoiceFormValuesToUpdateCommand(
+        values,
+        invoiceToEdit.id,
+      );
+      const result = await updateInvoice(command);
+      if (!result) return;
+      // Confirmar que el backend realmente guardó lo enviado antes de cerrar.
+      const sameCustomer = result.customerId === command.customerId;
+      const sameDueDate =
+        !command.dueDate ||
+        (result.dueDate !== null &&
+          result.dueDate.getTime() === new Date(command.dueDate).getTime());
+      if (!sameCustomer || !sameDueDate) {
+        setPersistError("La factura no se actualizó. Intenta nuevamente.");
+        return;
       }
-    },
-  );
 
+      // Líneas: se aplican las diferencias con los endpoints de invoice-items.
+      const original = new Map(
+        invoiceToEdit.items.map((item) => [String(item.id), item]),
+      );
+      const keptLineIds = new Set(
+        values.items.map((item) => item.lineId).filter(Boolean),
+      );
+      for (const [index, item] of values.items.entries()) {
+        const taxes = toItemTaxes(item);
+        if (!item.lineId) {
+          const created = await createInvoiceItem({
+            invoiceId: invoiceToEdit.id,
+            itemId: item.itemId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            taxes,
+          });
+          if (!created) return;
+          // Marca la línea como guardada para no duplicarla si se reintenta.
+          form.setValue(`items.${index}.lineId`, String(created.id));
+          continue;
+        }
+        const before = original.get(item.lineId);
+        if (!before) continue;
+        // El formulario solo muestra el impuesto principal de cada línea:
+        // se compara ese impuesto y se conservan los adicionales al guardar.
+        const [formTax] = taxes;
+        const beforeTax = before.taxes[0] ?? { code: "IVA", kind: "DEBIT", rate: 0 };
+        const changed =
+          before.quantity !== item.quantity ||
+          before.unitPrice !== item.unitPrice ||
+          beforeTax.code !== formTax.code ||
+          beforeTax.kind !== formTax.kind ||
+          beforeTax.rate !== formTax.rate;
+        if (changed) {
+          const keepNoTaxes = before.taxes.length === 0 && formTax.rate === 0;
+          const updated = await updateInvoiceItem({
+            id: item.lineId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            taxes: keepNoTaxes
+              ? []
+              : [
+                  formTax,
+                  ...before.taxes
+                    .slice(1)
+                    .map((t) => ({ code: t.code, kind: t.kind, rate: t.rate })),
+                ],
+          });
+          if (!updated) return;
+        }
+      }
+      for (const lineId of original.keys()) {
+        if (keptLineIds.has(lineId) || deletedLinesRef.current.has(lineId)) continue;
+        const deleted = await deleteInvoiceItem(lineId);
+        if (!deleted) return;
+        deletedLinesRef.current.add(lineId);
+      }
+
+      onSuccess?.();
+      return;
+    }
+    const result = await createInvoice(
+      mapCreateInvoiceFormValuesToCreateCommand(values),
+    );
+    if (result) onSuccess?.();
+  };
+
+  // La guarda contra envíos duplicados vive en el manejador del evento (no en
+  // render): cubre validación + peticiones y se libera siempre al terminar.
   const onSafeSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void onSubmit();
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    void form
+      .handleSubmit(submitValues)()
+      .finally(() => {
+        isSubmittingRef.current = false;
+      });
   };
 
   const appendItem = () =>

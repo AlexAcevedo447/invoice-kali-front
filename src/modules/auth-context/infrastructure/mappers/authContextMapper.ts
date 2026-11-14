@@ -25,6 +25,8 @@ export interface ApiAuthSessionResponse {
   token_type: string;
   expires_in: number;
   tenant_id: string;
+  tenant_name: string;
+  tenant_code: string;
   user_id: string;
   email: string;
   needs_rehash: boolean;
@@ -81,6 +83,8 @@ export const mapAuthSessionApiToDomain = (
   tokenType: input.token_type,
   expiresIn: input.expires_in,
   tenantId: toTenantId(input.tenant_id),
+  tenantName: input.tenant_name,
+  tenantCode: input.tenant_code,
   userId: toUserId(input.user_id),
   email: input.email,
   needsRehash: input.needs_rehash,

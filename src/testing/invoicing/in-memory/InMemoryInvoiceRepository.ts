@@ -6,6 +6,8 @@ const seedInvoices: Invoice[] = [
   {
     id: toInvoiceId("550e8400-e29b-41d4-a716-446655440000"),
     customerId: "customer-001",
+    customerName: "Cliente de prueba",
+    customerDocument: "000000000",
     issueDate: new Date("2026-01-10T00:00:00Z"),
     dueDate: new Date("2026-02-10T00:00:00Z"),
     items: [],
@@ -53,6 +55,8 @@ export class InMemoryInvoiceRepository implements InvoiceRepository {
     const created: Invoice = {
       id: toInvoiceId(globalThis.crypto?.randomUUID?.() ?? `inv-${Date.now()}`),
       customerId: command.customerId,
+      customerName: "",
+      customerDocument: "",
       issueDate: command.issueDate ? new Date(command.issueDate) : null,
       dueDate: command.dueDate ? new Date(command.dueDate) : null,
       items: [],

@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useGlobalToast } from "../../../../shared/ui/GlobalToastContext";
 import { z } from "zod";
 import { useAuthSessionStore } from "../../../../app/state/authSessionStore";
@@ -10,17 +10,22 @@ import { SubmitButton } from "../../../../shared/ui/forms/SubmitButton";
 import { useZodForm } from "../../../../shared/ui/forms/useZodForm";
 import { resolveHomeRoute } from "@app/routing/access";
 
+// El usuario nunca escribe el identificador técnico de su empresa: el servidor
+// la resuelve a partir de la cuenta. Solo si el mismo correo y contraseña
+// existen en varias empresas se pide el código legible de empresa.
+const loginSchema = z.object({
+    email: z.string().email("Enter a valid email"),
+    password: z.string().min(1, "Password is required"),
+    tenantCode: z.string().optional(),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
+const COMPANY_CODE_REQUIRED_STATUS = 409;
 
 export const LoginForm = () => {
-    const loginSchema = z.object({
-        tenantId: z.string().min(1, "Tenant ID is required"),
-        email: z.string().email("Enter a valid email"),
-        password: z.string().min(1, "Password is required"),
-    });
-
-    type LoginFormValues = z.infer<typeof loginSchema>;
-
     const isSubmittingRef = useRef(false);
+    const [needsCompanyCode, setNeedsCompanyCode] = useState(false);
     const { show } = useGlobalToast();
     const isLoading = useAuthSessionStore((state: AuthSessionState) => state.isLoading);
     const login = useAuthSessionStore((state: AuthSessionState) => state.actions.login);
@@ -29,75 +34,77 @@ export const LoginForm = () => {
 
     const form = useZodForm<LoginFormValues>(loginSchema, {
         defaultValues: {
-            tenantId: "",
             email: "",
             password: "",
+            tenantCode: "",
         },
     });
 
+    const submitValues = async (values: LoginFormValues) => {
+        clearError();
+        const tenantCode = values.tenantCode?.trim().toLowerCase();
+        if (needsCompanyCode && !tenantCode) {
+            form.setError("tenantCode", { message: "Company code is required" });
+            return;
+        }
+        const result = await login({
+            email: values.email.trim(),
+            password: values.password,
+            ...(needsCompanyCode && tenantCode ? { tenantCode } : {}),
+        });
+        if (result.success) {
+            // Un usuario sin roles/permisos reconocidos no puede usar ningún módulo:
+            // se informa el motivo y no se deja una sesión abierta sin salida.
+            const { roles, permissions } = useAuthSessionStore.getState();
+            if (!resolveHomeRoute(roles, permissions)) {
+                logout();
+                show({
+                    severity: "error",
+                    summary: "Acceso denegado",
+                    detail: "Tu usuario no tiene permisos asignados para ingresar.",
+                    life: 5000,
+                });
+                return;
+            }
+            show({
+                severity: "success",
+                summary: "Inicio de sesión exitoso",
+                detail: "¡Bienvenido!",
+                life: 3000,
+            });
+            return;
+        }
 
-    const onSubmit = form.handleSubmit(async (values: LoginFormValues) => {
+        if (result.status === COMPANY_CODE_REQUIRED_STATUS && !needsCompanyCode) {
+            setNeedsCompanyCode(true);
+        }
+        if (result.error) {
+            show({
+                severity: result.status === COMPANY_CODE_REQUIRED_STATUS ? "warn" : "error",
+                summary: "Error de inicio de sesión",
+                detail: result.error,
+                life: 5000,
+            });
+        }
+    };
+
+    // La guarda contra envíos duplicados vive en el manejador del evento (no en
+    // render): cubre validación + petición y se libera siempre al terminar.
+    const onSafeSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
         if (isSubmittingRef.current) return;
         isSubmittingRef.current = true;
         try {
-            clearError();
-            const result = await login(values);
-            if (result.success) {
-                // Un usuario sin roles/permisos reconocidos no puede usar ningún módulo:
-                // se informa el motivo y no se deja una sesión abierta sin salida.
-                const { roles, permissions } = useAuthSessionStore.getState();
-                if (!resolveHomeRoute(roles, permissions)) {
-                    logout();
-                    show({
-                        severity: "error",
-                        summary: "Acceso denegado",
-                        detail: "Tu usuario no tiene permisos asignados para ingresar.",
-                        life: 5000,
-                    });
-                    return;
-                }
-                show({
-                    severity: "success",
-                    summary: "Inicio de sesión exitoso",
-                    detail: "¡Bienvenido!",
-                    life: 3000,
-                });
-            } else if (result.error) {
-                show({
-                    severity: "error",
-                    summary: "Error de inicio de sesión",
-                    detail: result.error,
-                    life: 4000,
-                });
-            }
+            await form.handleSubmit(submitValues)();
         } finally {
             isSubmittingRef.current = false;
         }
-    });
-
-    const onSafeSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        await onSubmit();
     };
 
     return (
         <section className="surface-card p-4 border-round border-1 border-300 mb-4">
             <h2 className="mt-0 mb-3">Login</h2>
             <form onSubmit={onSafeSubmit} noValidate>
-                <FormField
-                    id="tenantId"
-                    label="Tenant ID"
-                    required
-                    error={form.formState.errors.tenantId?.message}
-                >
-                    <input
-                        id="tenantId"
-                        type="text"
-                        className="p-inputtext p-component w-full"
-                        {...form.register("tenantId")}
-                    />
-                </FormField>
-
                 <FormField
                     id="email"
                     label="Email"
@@ -127,6 +134,25 @@ export const LoginForm = () => {
                         {...form.register("password")}
                     />
                 </FormField>
+
+                {needsCompanyCode ? (
+                    <FormField
+                        id="tenantCode"
+                        label="Código de empresa"
+                        required
+                        hint="Tu correo pertenece a varias empresas. Escribe el código de la empresa a la que quieres ingresar."
+                        error={form.formState.errors.tenantCode?.message}
+                    >
+                        <input
+                            id="tenantCode"
+                            type="text"
+                            data-cy="login-company-code"
+                            className="p-inputtext p-component w-full"
+                            autoComplete="organization"
+                            {...form.register("tenantCode")}
+                        />
+                    </FormField>
+                ) : null}
 
                 <FormActions>
                     <SubmitButton

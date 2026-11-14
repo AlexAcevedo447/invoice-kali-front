@@ -77,7 +77,10 @@ export const InvoicesManagementPage = () => {
     const tableData: InvoiceTableData[] = invoices.map((inv) => ({
         id: inv.id,
         number: `FAC-${inv.id.slice(0, 8).toUpperCase()}`,
-        clientName: inv.customerId,
+        // Nombre y documento legibles; el UUID del cliente nunca se muestra.
+        clientName: inv.customerName
+            ? `${inv.customerName} (${inv.customerDocument})`
+            : "Cliente no disponible",
         amount: inv.total,
         status: mapDomainStatusToUI(inv.status),
         // Se conserva la fecha completa: recortarla a YYYY-MM-DD la interpretaba

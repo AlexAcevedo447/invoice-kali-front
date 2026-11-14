@@ -22,18 +22,18 @@ export class HttpAuthRepository implements AuthRepository {
   }
 
   async login(
-    command: { tenantId: string; email: string; password: string },
+    command: { email: string; password: string; tenantCode?: string },
     options?: RequestOptions,
   ) {
     const response = await this.httpClient.post<
       ApiAuthSessionResponse,
-      { tenant_id: string; email: string; password: string }
+      { email: string; password: string; tenant_code?: string }
     >(
       AuthContextEndpoints.auth.login,
       {
-        tenant_id: command.tenantId,
         email: command.email,
         password: command.password,
+        ...(command.tenantCode ? { tenant_code: command.tenantCode } : {}),
       },
       toPublicConfig(options),
     );
