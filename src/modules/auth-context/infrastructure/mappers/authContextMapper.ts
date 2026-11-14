@@ -27,6 +27,8 @@ export interface ApiAuthSessionResponse {
   tenant_id: string;
   tenant_name: string;
   tenant_code: string;
+  /** Ausente en versiones anteriores del servicio: se interpreta como false. */
+  is_platform_tenant?: boolean;
   user_id: string;
   email: string;
   needs_rehash: boolean;
@@ -52,6 +54,8 @@ export interface ApiUser {
 export interface ApiTenant {
   Id: string;
   Name: string;
+  /** Código legible de empresa (3-40 minúsculas, dígitos o guiones). */
+  Code: string;
   Status: "ACTIVE" | "SUSPENDED";
 }
 
@@ -85,6 +89,7 @@ export const mapAuthSessionApiToDomain = (
   tenantId: toTenantId(input.tenant_id),
   tenantName: input.tenant_name,
   tenantCode: input.tenant_code,
+  isPlatformTenant: input.is_platform_tenant === true,
   userId: toUserId(input.user_id),
   email: input.email,
   needsRehash: input.needs_rehash,
@@ -114,6 +119,7 @@ export const mapUserApiToDomain = (input: ApiUser): User => ({
 export const mapTenantApiToDomain = (input: ApiTenant): Tenant => ({
   id: toTenantId(input.Id),
   name: input.Name,
+  code: input.Code ?? "",
   status: input.Status,
 });
 

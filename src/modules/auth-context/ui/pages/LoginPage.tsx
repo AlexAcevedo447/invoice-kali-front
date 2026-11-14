@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { SESSION_END_MESSAGES } from "@shared/application/http/sessionEnd";
 import { Navigate } from "react-router-dom";
 import { useGlobalToast } from "../../../../shared/ui/GlobalToastContext";
 import { useAuthSessionStore } from "../../../../app/state/authSessionStore";
@@ -21,13 +22,9 @@ export const LoginPage = () => {
         // Se lee y limpia del store (no del render) para que el doble efecto de
         // StrictMode no muestre el aviso dos veces.
         if (!sessionExpiredNotice || !useAuthSessionStore.getState().sessionExpiredNotice) return;
+        const reason = useAuthSessionStore.getState().sessionEndReason ?? "expired";
         clearNotice();
-        show({
-            severity: "warn",
-            summary: "Sesión expirada",
-            detail: "Tu sesión ha expirado. Inicia sesión nuevamente.",
-            life: 6000,
-        });
+        show({ severity: "warn", ...SESSION_END_MESSAGES[reason], life: 6000 });
     }, [sessionExpiredNotice, show, clearNotice]);
 
     if (!hasHydrated) {

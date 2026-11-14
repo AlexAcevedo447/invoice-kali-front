@@ -11,6 +11,12 @@ export interface AuthSession {
   /** Nombre y código legibles de la empresa, para mostrar al usuario. */
   tenantName: string;
   tenantCode: string;
+  /**
+   * La sesión pertenece a la empresa de plataforma, la única que el servidor
+   * autoriza a administrar empresas. Solo decide qué se muestra; la autorización
+   * real la aplica el servidor (403 platform administrator required).
+   */
+  isPlatformTenant: boolean;
   userId: UserId;
   email: string;
   needsRehash: boolean;

@@ -21,16 +21,18 @@ export class HttpTenantRepository implements TenantRepository {
   }
 
   async create(
-    command: { name: string },
+    command: { name: string; code?: string },
     options: IdempotentProtectedRequestOptions,
-  ): Promise<void> {
-    await this.httpClient.post<void, { name: string }>(
+  ): Promise<Tenant> {
+    const response = await this.httpClient.post<ApiTenant, { name: string; code?: string }>(
       AuthContextEndpoints.tenants.create,
       {
         name: command.name,
+        ...(command.code ? { code: command.code } : {}),
       },
       toIdempotentProtectedConfig(options),
     );
+    return mapTenantApiToDomain(response);
   }
 
   async list(options: ProtectedRequestOptions): Promise<Tenant[]> {
@@ -67,16 +69,19 @@ export class HttpTenantRepository implements TenantRepository {
   }
 
   async update(
-    command: { tenantId: string; name: string; status: "ACTIVE" | "SUSPENDED" },
+    command: { tenantId: string; name: string; code: string; status: "ACTIVE" | "SUSPENDED" },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void> {
+    // PUT reemplaza la empresa: se envía siempre su estado actual para que
+    // editar nombre o código no lo cambie.
     await this.httpClient.put<
       void,
-      { name: string; status: "ACTIVE" | "SUSPENDED" }
+      { name: string; code: string; status: "ACTIVE" | "SUSPENDED" }
     >(
       AuthContextEndpoints.tenants.update(command.tenantId),
       {
         name: command.name,
+        code: command.code,
         status: command.status,
       },
       toIdempotentProtectedConfig(options),

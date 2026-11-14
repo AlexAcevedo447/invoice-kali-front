@@ -5,6 +5,7 @@ import axios, {
   type AxiosRequestConfig,
 } from "axios";
 import { expireSession, getAccessToken } from "@app/state/authSessionStore";
+import { sessionEndReasonFor } from "@shared/application/http/sessionEnd";
 import axiosRetry from "axios-retry";
 import type {
   HttpClient,
@@ -186,15 +187,13 @@ export class AxiosHttpClient implements HttpClient {
       });
       return { data: response.data, headers };
     } catch (error) {
-      // Un 401 en una petición que llevaba token significa sesión vencida o
-      // inválida (el login no envía token, así que su 401 no entra aquí).
-      if (
-        token &&
-        isAxiosErrorWithPayload(error) &&
-        error.response?.status === 401 &&
-        !url.includes("/auth/login")
-      ) {
-        expireSession();
+      // En una petición que llevaba token, un 401 (sesión vencida o inválida) o
+      // un 403 "tenant is suspended" (empresa suspendida) cierran la sesión. El
+      // login no envía token, así que sus errores no entran aquí.
+      if (token && isAxiosErrorWithPayload(error) && !url.includes("/auth/login")) {
+        const payload = error.response?.data as { error?: unknown } | undefined;
+        const reason = sessionEndReasonFor(error.response?.status, payload?.error);
+        if (reason) expireSession(reason);
       }
       throw this.mapHttpError(error);
     }

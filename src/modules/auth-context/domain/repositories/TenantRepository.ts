@@ -9,10 +9,11 @@ import type {
 import type { TenantId } from "../value-objects/TenantId";
 
 export interface TenantRepository {
+  /** Si se omite el código, el servidor lo deriva del nombre. */
   create(
-    command: { name: string },
+    command: { name: string; code?: string },
     options: IdempotentProtectedRequestOptions,
-  ): Promise<void>;
+  ): Promise<Tenant>;
 
   list(options: ProtectedRequestOptions): Promise<Tenant[]>;
 
@@ -27,7 +28,7 @@ export interface TenantRepository {
   ): Promise<Tenant>;
 
   update(
-    command: { tenantId: TenantId; name: string; status: TenantStatus },
+    command: { tenantId: TenantId; name: string; code: string; status: TenantStatus },
     options: IdempotentProtectedRequestOptions,
   ): Promise<void>;
 

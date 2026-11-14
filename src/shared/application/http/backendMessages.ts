@@ -15,6 +15,14 @@ const KNOWN_MESSAGES: Record<string, string> = {
   "platform administrator required":
     "Esta acción solo la puede realizar el administrador de la plataforma.",
   "resource not found": "El recurso solicitado no existe.",
+  // Empresas (las claves van en minúsculas: la búsqueda normaliza el mensaje)
+  "tenant name is required": "El nombre de la empresa es obligatorio.",
+  "tenant code must have 3-40 lowercase letters, digits or hyphens":
+    "El código de empresa debe tener de 3 a 40 minúsculas, números o guiones.",
+  "tenant code already exists": "Ya existe una empresa con ese código.",
+  "tenant status must be active or suspended": "El estado de la empresa debe ser activa o suspendida.",
+  "tenant_id is required": "Falta indicar la empresa.",
+  "platform tenant cannot be suspended": "La empresa de la plataforma no se puede suspender.",
   // Usuarios
   "a user with this email already exists for this tenant":
     "Ya existe un usuario registrado con este correo electrónico.",

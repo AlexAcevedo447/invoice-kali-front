@@ -86,6 +86,29 @@ export const canAccessAdminModule = (
   ]);
 };
 
+/** Permiso RBAC que exige el servidor para administrar empresas (mismo que kali-auth-context). */
+export const PLATFORM_ADMIN_PERMISSION = { resource: "tenants", action: "manage" } as const;
+
+/**
+ * Administración de empresas (RF-05): el servidor la permite solo al
+ * administrador de plataforma = usuario de la empresa de plataforma con el
+ * permiso tenants/manage (o comodín "*"), igual que TenantGuards.PlatformAdmin.
+ * Esta función solo decide qué se muestra; la autorización la aplica el servidor.
+ */
+export const canManageTenants = (
+  isPlatformTenant: boolean,
+  permissions: SessionPermission[],
+): boolean =>
+  isPlatformTenant &&
+  permissions.some((permission) => {
+    const resource = normalize(permission.resource);
+    const action = normalize(permission.action);
+    return (
+      (resource === "*" || resource === PLATFORM_ADMIN_PERMISSION.resource) &&
+      (action === "*" || action === PLATFORM_ADMIN_PERMISSION.action)
+    );
+  });
+
 export const resolveHomeRoute = (
   roles: string[],
   permissions: SessionPermission[],
