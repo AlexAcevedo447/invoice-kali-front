@@ -17,7 +17,8 @@ import { HttpError } from "@shared/application/http/HttpError";
 import { translateBackendMessage } from "@shared/application/http/backendMessages";
 
 type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
-type IdempotentMutationMethod = "post" | "put" | "patch";
+// DELETE también muta: auth y facturación exigen Idempotency-Key en él.
+type IdempotentMutationMethod = "post" | "put" | "patch" | "delete";
 type UnknownRecord = Record<string, unknown>;
 type ErrorPayload = { message?: string; error?: string } | string;
 
@@ -55,7 +56,7 @@ export class AxiosHttpClient implements HttpClient {
 
     this.idempotencyConfig = {
       enabled: config.idempotency?.enabled ?? true,
-      methods: config.idempotency?.methods ?? ["post", "put", "patch"],
+      methods: config.idempotency?.methods ?? ["post", "put", "patch", "delete"],
       headerName: config.idempotency?.headerName ?? "Idempotency-Key",
     };
 
@@ -275,7 +276,7 @@ export class AxiosHttpClient implements HttpClient {
 const isIdempotentMutationMethod = (
   method: HttpMethod,
 ): method is IdempotentMutationMethod => {
-  return method === "post" || method === "put" || method === "patch";
+  return method === "post" || method === "put" || method === "patch" || method === "delete";
 };
 
 const isRecord = (value: unknown): value is UnknownRecord => {
