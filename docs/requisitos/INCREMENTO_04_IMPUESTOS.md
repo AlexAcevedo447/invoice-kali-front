@@ -1,8 +1,9 @@
 # Incremento 4 — Impuestos múltiples por línea (RF-13)
 
 Estado: **implementado y probado (14 nov 2026)** en la rama `feature/impuestos` (creada desde
-`feature/usuarios`) de los cuatro repositorios. Queda abierto el punto D4-04 (tarifa máxima y
-redondeo), que el servidor no define.
+`feature/usuarios`) de los cuatro repositorios. D4-04 está resuelta (se conservan las reglas del
+servidor y el cliente no redondea, tampoco al mostrar). Queda una **pregunta de negocio pendiente
+(PN-01)**: tarifa máxima y regla de redondeo, que el servidor no define y no se inventaron.
 
 ## Requisitos de origen (acta GA8)
 
@@ -32,7 +33,7 @@ consultar y editar**.
 | D4-01 | Se permiten líneas **sin impuestos**; se muestran como "Sin impuestos", sin inventar un IVA 0 %. | Servidor ya lo admitía. La interfaz admite 0..N impuestos; las líneas nuevas empiezan sin impuestos. |
 | D4-02 | Un código **no se repite** en la misma línea, sin distinguir mayúsculas ni espacios exteriores. Validación en cliente y servidor. Los duplicados históricos se informan, no se corrigen. | Servidor: 400 `tax code is repeated in the same item`. Cliente: error en la fila repetida (`El código de impuesto "IVA" está repetido en esta línea.`). Históricos: ver abajo. |
 | D4-03 | Códigos de **texto libre**, obligatorios y normalizados (trim + mayúsculas); el tipo DEBIT/CREDIT se elige **explícitamente**; sin catálogo nuevo. | Servidor: `kind` vacío ahora es 400 (antes DEBIT implícito). Interfaz: selector con "Selecciona el tipo" sin valor por defecto. |
-| D4-04 | Se conservan las reglas del servidor; el cliente no redondea. | Ver "Precisión y cálculo". **Punto abierto:** el servidor no define tarifa máxima ni redondeo; no se inventó ninguna regla. |
+| D4-04 | Se conservan las reglas del servidor; el cliente no redondea ni en los mapeos ni al mostrar. | Ver "Precisión y cálculo". Corrección del 14 nov 2026: la vista "Ver", el listado y los precios de productos mostraban importes con `toFixed(2)` (redondeo no definido por el servidor); ahora muestran el valor exacto. Tarifa máxima y redondeo: pregunta PN-01, sin regla inventada. |
 | D4-05 | Modificar líneas de una factura existente sigue exigiendo `invoice-items/manage`; `invoices/manage` no lo concede. | Sin ese permiso, al editar, líneas e impuestos quedan deshabilitados con una nota explicativa; cliente y vencimiento siguen editables. Crear una factura con sus líneas solo exige `invoices/manage`. |
 | D4-06 | Vista de **solo lectura** de líneas e impuestos desde el listado, con `invoices/read`. | Acción "Ver" en cada fila → diálogo con `GET /invoices/:id`: cliente, fechas, estado, líneas, impuestos y totales del servidor. |
 
@@ -64,13 +65,19 @@ Interfaz:
 - La tarifa se escribe en % con **punto decimal** y se convierte a fracción **desplazando el punto
   decimal sobre el texto** (`"0.414"` → `0.00414`; `0.00414` → `"0.414"`), sin `toFixed` ni
   multiplicar o dividir. Se eliminó el redondeo previo a 4 decimales.
-- Los totales mostrados son los del servidor, sin recalcular. El listado y la vista los presentan
-  con 2 decimales solo para mostrar (`$x.xx`); el valor exacto queda en `data-value`.
+- Los totales mostrados son los del servidor, sin recalcular **ni redondear**: `formatAmount`
+  usa la representación decimal exacta del número recibido y solo completa ceros hasta 2
+  decimales (`238` → `$238.00`; `0.41395799999999997` → `$0.41395799999999997`). Como el servidor
+  calcula en `float64` sin redondeo, pueden verse decimales de coma flotante: es el valor real
+  guardado, no un error de la interfaz. El valor también queda en `data-value`.
+- Pruebas: Vitest `invoiceFormat.test.ts` (no recorta, conserva signo y artefactos de float) y
+  CP-E2E-011 (el texto mostrado de totales e importes es igual al número del servidor).
 
-**Punto abierto para decisión de negocio:** ¿tarifa máxima (p. ej. ≤ 100 %), número máximo de
-decimales en la tarifa y redondeo de importes (p. ej. a 2 decimales por impuesto o por factura)?
-Hoy el servidor acepta cualquier tarifa ≥ 0 y guarda importes sin redondear; la interfaz no
-añade límites.
+**Pregunta de negocio pendiente PN-01 (no es una regla del sistema):** ¿tarifa máxima (p. ej.
+≤ 100 %), número máximo de decimales en la tarifa y redondeo de importes (p. ej. a 2 decimales por
+impuesto o por factura, y con qué método)? Hoy el servidor acepta cualquier tarifa ≥ 0 (la
+comprobación EV02 C-15c aceptó 250 %) y guarda importes sin redondear; la interfaz no añade
+límites. Si se decide una regla, debe implementarse en el servidor y reflejarse en la interfaz.
 
 ## Criterios de aceptación
 

@@ -1,6 +1,7 @@
 import { CatalogManager } from "@modules/invoicing/ui/components/CatalogManager";
 import { catalogApi } from "@modules/invoicing/infrastructure/catalog/catalogApi";
 import type { Product } from "@modules/invoicing/domain/entities/Catalog";
+import { formatAmount } from "@modules/invoicing/ui/constants/invoiceFormat";
 
 const listProducts = (search: string, page: number, pageSize: number) =>
     catalogApi.listProducts(search, page, pageSize);
@@ -33,7 +34,7 @@ export const ProductsPage = () => (
                 field: "unitPrice",
                 header: "Precio unitario",
                 sortable: true,
-                body: (row) => `$${row.unitPrice.toFixed(2)}`,
+                body: (row) => formatAmount(row.unitPrice),
             },
         ]}
         list={listProducts}
