@@ -38,6 +38,3 @@ Estado actual
 - Build exitoso, sin errores de tipado ni sintaxis.
 - Código listo para desarrollo o despliegue.
 - Enforcement de buenas prácticas aplicado en todo el workspace.
-
---
-GitHub Copilot, mayo 2026
