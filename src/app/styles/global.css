@@ -104,9 +104,23 @@ textarea {
   overflow-x: auto;
 }
 
+/*
+ * Celdas: solo se parte una palabra que por sí sola no cabe (break-word); no se
+ * usa "anywhere" porque reduce el ancho mínimo y corta importes y estados a
+ * mitad ("$459.387,0|0", "Pendi|ente"). Si el contenido no cabe, la tabla se
+ * desplaza dentro de su contenedor, sin desbordar la página.
+ */
 .p-datatable .p-datatable-tbody > tr > td,
 .table-scroll td {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+/* Importes, estados y valores numéricos nunca se parten. */
+.p-tag,
+[data-cy="invoice-row-amount"],
+[data-cy="product-row-unit-price"],
+[data-cy^="invoice-view-"][data-value] {
+  white-space: nowrap;
 }
 
 /* ---------- Selector de catálogo (CatalogSelect / Dropdown) ---------- */

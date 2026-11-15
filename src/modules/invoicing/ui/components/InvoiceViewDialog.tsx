@@ -4,6 +4,7 @@ import { useInvoicingStore, type InvoicingState } from "@app/state/invoicingStor
 import type { Invoice } from "@modules/invoicing/domain/entities/Invoice";
 import { formatAmount, formatRatePercent, mapDomainStatusToUI, TAX_KIND_LABELS } from "../constants/invoiceFormat";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
+import { formatEsCoDecimal } from "@shared/domain/esCoDecimal";
 
 interface InvoiceViewDialogProps {
     /** Factura a consultar; null cierra el diálogo. */
@@ -114,7 +115,7 @@ const InvoiceView = ({ invoice }: { invoice: Invoice }) => (
                         {lineIndex + 1}. {line.productCode} — {line.productName}
                     </strong>
                     <span>
-                        Cantidad: <span data-cy="invoice-view-line-quantity" data-value={line.quantity}>{line.quantity}</span>
+                        Cantidad: <span data-cy="invoice-view-line-quantity" data-value={line.quantity}>{formatEsCoDecimal(line.quantity)}</span>
                         {" · "}
                         Precio unitario:{" "}
                         <span data-cy="invoice-view-line-unit-price" data-value={line.unitPrice}>
