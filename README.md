@@ -45,9 +45,11 @@ npm run stack:health
 Usuario inicial (empresa `master`): `master@local.dev` / `Kali#Local2026` (valores de ejemplo de
 `kali-auth-context/.env.example`, solo para uso local).
 
-Empresa de prueba para la demo (opcional, repetible): desde `kali-invoice-tests`,
-`cp cypress.env.example.json cypress.env.json && npm ci` y luego
-`npx cypress run --spec cypress/e2e/demo/seed-video-demo.cy.ts`. Crea "Empresa Demo" (código `demo`),
+Empresa de prueba para la demo (opcional, repetible): desde `kali-invoice-tests/cypress`,
+`npm ci`, exportar `CYPRESS_AUTH_ADMIN_PASSWORD` y `CYPRESS_DEMO_ADMIN_PASSWORD` (o crear
+`cypress.env.json` desde `cypress.env.example.json`) y luego
+`npx cypress run --spec e2e/demo/seed-video-demo.cy.ts` (o, sin Node, `docker compose run --rm cypress
+--spec e2e/demo/seed-video-demo.cy.ts`; ver `kali-invoice-tests/cypress/README.md`). Crea "Empresa Demo" (código `demo`),
 su administrador `admin.demo@local.dev` / `Demo#Local2026` con rol `invoicing`, clientes, productos y facturas.
 
 ## Desarrollo del front en el host
