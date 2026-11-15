@@ -43,12 +43,14 @@ Se registran para trazabilidad. **No están aprobadas**: requieren revisión y a
 
 | ID propuesto | Funcionalidad | Origen | Estado | Evidencia |
 | --- | --- | --- | --- | --- |
-| RF-17 (propuesto) | Catálogo de clientes por empresa (crear, buscar, listar) | Commit `fd08d14` / `2c8c5c8` | Implementado y probado | CP-SEC-001, GA10 |
-| RF-18 (propuesto) | Catálogo de productos por empresa | Commit `fd08d14` / `2c8c5c8` | Implementado y probado | CP-SEC-001, GA10 |
+| RF-17 (propuesto) | Catálogo de clientes por empresa (crear, buscar, listar) | Commit `a2dd11e` / `c4e2394` | Implementado y probado | CP-SEC-001, GA10 |
+| RF-18 (propuesto) | Catálogo de productos por empresa | Commit `a2dd11e` / `c4e2394` | Implementado y probado | CP-SEC-001, GA10 |
 | RF-19 (propuesto) | Cierre de sesión y expiración de sesión | GA10 F13 (antes ausente) | Implementado y probado | GA10 C3 |
-| RF-20 (propuesto) | Login con código de empresa cuando el correo existe en varias empresas | Commit `25d995e` | Implementado y probado | CP-INT-008 |
-| RNF-08 (propuesto) | Aislamiento de datos entre empresas | Commits `25d995e`, `fd08d14` | Implementado y probado | CP-SEC-001 |
+| RF-20 (propuesto) | Login con código de empresa cuando el correo existe en varias empresas | Commit `b80c4c1` | Implementado y probado | CP-INT-008 |
+| RNF-08 (propuesto) | Aislamiento de datos entre empresas | Commits `b80c4c1`, `a2dd11e` | Implementado y probado | CP-SEC-001 |
 | RNF-09 (propuesto) | Una empresa suspendida no opera con ningún token, incluidos los emitidos antes de la suspensión (auth inmediato; facturación ≤ `TENANT_STATUS_CACHE_SECONDS`) | Incremento 1 (cierre) | Implementado y probado | CP-SEC-002 |
+
+Nota de hashes (14-11-2026): el historial se reescribió solo para quitar trailers automáticos de los mensajes; el código de cada commit es idéntico. Equivalencias: `a2dd11e` (kali-invoice-service) = antes `fd08d14`; `c4e2394` (invoice-kali-front) = antes `2c8c5c8`; `b80c4c1` (kali-auth-context) = antes `25d995e`.
 
 ## Requisitos no funcionales y de entrega
 
