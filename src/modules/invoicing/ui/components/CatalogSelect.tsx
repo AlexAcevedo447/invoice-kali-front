@@ -93,7 +93,10 @@ export const CatalogSelect = <T,>({
             emptyFilterMessage={loading ? "Buscando..." : "No hay resultados"}
             disabled={disabled}
             invalid={invalid}
-            className="w-full"
+            // Nombres largos sin espacios se parten en varias líneas y el panel no
+            // supera el ancho de la pantalla (ver src/app/styles/global.css).
+            className="w-full catalog-select"
+            panelClassName="catalog-select-panel"
         />
     );
 };

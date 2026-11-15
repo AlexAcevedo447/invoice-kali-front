@@ -13,7 +13,7 @@ interface InvoiceItemTaxesEditorProps {
 
 /**
  * Impuestos de una línea (0..N): código, tipo (débito/crédito, sin valor por
- * defecto) y tarifa en %. Los ids siguen la ruta de React Hook Form
+ * defecto) y tarifa en % con coma decimal es-CO ("4,14"). Los ids siguen la ruta de React Hook Form
  * (items.{i}.taxes.{j}.code|kind|rate).
  */
 export const InvoiceItemTaxesEditor = ({ form, itemIndex, readOnly = false }: InvoiceItemTaxesEditorProps) => {
@@ -97,7 +97,8 @@ export const InvoiceItemTaxesEditor = ({ form, itemIndex, readOnly = false }: In
                                     id={`${base}.rate`}
                                     type="text"
                                     inputMode="decimal"
-                                    placeholder="p. ej. 19 o 4.14"
+                                    placeholder="p. ej. 19 o 4,14"
+                                    autoComplete="off"
                                     className="p-inputtext p-component w-full"
                                     disabled={readOnly}
                                     data-cy={`${cy}-rate`}

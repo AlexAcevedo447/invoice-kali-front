@@ -147,7 +147,7 @@ export const PermissionsPage = () => {
 
     if (!allowed) {
         return (
-            <section className="p-5" data-cy="permissions-access-denied">
+            <section className="app-page" data-cy="permissions-access-denied">
                 <h1 className="mt-0">Permisos</h1>
                 <p>Acceso denegado: necesitas el permiso para ver permisos (permissions/read).</p>
             </section>
@@ -280,7 +280,7 @@ export const PermissionsPage = () => {
         : [];
 
     return (
-        <section className="p-5" data-cy="permissions-page">
+        <section className="app-page" data-cy="permissions-page">
             <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }} className="mb-4">
                 Permisos
             </h1>

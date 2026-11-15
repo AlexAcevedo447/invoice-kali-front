@@ -9,7 +9,10 @@ import {
     getCreateInvoiceDefaultValues,
     mapCreateInvoiceFormValuesToCreateCommand,
     mapFormTaxesToCommand,
+    esCoTextToNumber,
     mapInvoiceToCreateInvoiceFormValues,
+    percentTextToRate,
+    rateToPercentText,
     sameTaxes,
 } from "./createInvoiceForm.mappers";
 import type { InvoiceFormItem } from "./createInvoiceForm.schema";
@@ -54,8 +57,8 @@ const formItemFrom = (item: InvoiceItem): InvoiceFormItem =>
     mapInvoiceToCreateInvoiceFormValues(invoiceWith([item])).items[0];
 
 describe("valores iniciales", () => {
-    it("una línea nueva empieza sin impuestos", () => {
-        expect(createEmptyItem().taxes).toEqual([]);
+    it("una línea nueva empieza sin impuestos, cantidad 1 y precio 0 (texto)", () => {
+        expect(createEmptyItem()).toEqual({ itemId: "", quantity: "1", unitPrice: "0", taxes: [] });
         expect(getCreateInvoiceDefaultValues().items).toEqual([createEmptyItem()]);
     });
 
@@ -75,8 +78,18 @@ describe("mapInvoiceToCreateInvoiceFormValues (CA-13.2, CA-13.8)", () => {
         );
         expect(values.items[0].taxes).toEqual([
             { code: "IVA", kind: "DEBIT", rate: "19" },
-            { code: "RETEFUENTE", kind: "CREDIT", rate: "2.5" },
-            { code: "ICA", kind: "CREDIT", rate: "0.414" },
+            { code: "RETEFUENTE", kind: "CREDIT", rate: "2,5" },
+            { code: "ICA", kind: "CREDIT", rate: "0,414" },
+        ]);
+    });
+
+    it("muestra cantidad y precio con coma decimal exacta, sin agrupar ni redondear", () => {
+        const values = mapInvoiceToCreateInvoiceFormValues(
+            invoiceWith([line({ quantity: 2.5, unitPrice: 1234.5 }), line({ id: "line-2", quantity: 3, unitPrice: 0.1 + 0.2 } as Partial<InvoiceItem>)]),
+        );
+        expect(values.items.map((item) => [item.quantity, item.unitPrice])).toEqual([
+            ["2,5", "1234,5"],
+            ["3", "0,30000000000000004"],
         ]);
     });
 
@@ -95,7 +108,7 @@ describe("mapFormTaxesToCommand", () => {
         expect(
             mapFormTaxesToCommand([
                 { code: " IVA ", kind: "DEBIT", rate: "19" },
-                { code: "ReteICA", kind: "CREDIT", rate: "0.414" },
+                { code: "ReteICA", kind: "CREDIT", rate: "0,414" },
             ]),
         ).toEqual([
             { code: "IVA", kind: "DEBIT", rate: 0.19 },
@@ -117,16 +130,20 @@ describe("mapCreateInvoiceFormValuesToCreateCommand (CA-13.1)", () => {
             items: [
                 {
                     itemId: "p-1",
-                    quantity: 2,
-                    unitPrice: 100,
+                    quantity: "2",
+                    unitPrice: "33,33",
                     taxes: [
                         { code: "IVA", kind: "DEBIT", rate: "19" },
-                        { code: "RETEFUENTE", kind: "CREDIT", rate: "2.5" },
+                        { code: "RETEFUENTE", kind: "CREDIT", rate: "2,5" },
                     ],
                 },
-                { itemId: "p-2", quantity: 1, unitPrice: 50, taxes: [] },
+                { itemId: "p-2", quantity: "1,5", unitPrice: "50", taxes: [] },
             ],
         });
+        expect(command.items.map((item) => [item.quantity, item.unitPrice])).toEqual([
+            [2, 33.33],
+            [1.5, 50],
+        ]);
         expect(command.items.map((item) => item.taxes)).toEqual([
             [
                 { code: "IVA", kind: "DEBIT", rate: 0.19 },
@@ -135,6 +152,45 @@ describe("mapCreateInvoiceFormValuesToCreateCommand (CA-13.1)", () => {
             [],
         ]);
     });
+});
+
+describe("conversión de textos es-CO del formulario", () => {
+    it.each([
+        ["2,5", 2.5],
+        ["33,33", 33.33],
+        [" 1234,5 ", 1234.5],
+        ["0,30000000000000004", 0.1 + 0.2],
+    ])("esCoTextToNumber(%j) = %s exacto", (text, value) => {
+        expect(esCoTextToNumber(text)).toBe(value);
+    });
+
+    it.each(["2.5", "1.234", "1,2,3", "", "$5"])("esCoTextToNumber rechaza %j (la validación lo impide antes)", (text) => {
+        expect(() => esCoTextToNumber(text)).toThrow();
+    });
+
+    it.each([
+        ["19", 0.19],
+        ["4,14", 0.0414],
+        ["0,414", 0.00414],
+        ["2,5", 0.025],
+        ["5,5", 0.055],
+        ["0,966", 0.00966],
+        ["0,07", 0.0007],
+        ["1,1", 0.011],
+    ])("percentTextToRate(%j) = %s exacto", (text, rate) => {
+        expect(percentTextToRate(text)).toBe(rate);
+    });
+
+    it.each(["2.5", "0.414", "19%"])("percentTextToRate rechaza %j", (text) => {
+        expect(() => percentTextToRate(text)).toThrow();
+    });
+
+    it.each([0.19, 0.0414, 0.00414, 0.025, 0.29, 0.07, 0.00001, 0.123456789, 1, 0])(
+        "ida y vuelta fracción %s → % es-CO → fracción",
+        (rate) => {
+            expect(percentTextToRate(rateToPercentText(rate))).toBe(rate);
+        },
+    );
 });
 
 describe("sameTaxes", () => {
@@ -177,6 +233,27 @@ describe("buildInvoiceItemUpdate (CA-13.3: PUT solo si algo cambió, con la list
         expect(buildInvoiceItemUpdate(item, formItemFrom(item))).toBeNull();
     });
 
+    it.each([
+        [2.5, 33.33, "2,50", "33,330"],
+        [3, 100, "3,0", " 100 "],
+        [0.1 + 0.2, 1234.5, "0,30000000000000004", "1234,50"],
+    ])("cantidad %s y precio %s escritos como %j / %j: mismo número, sin PUT", (quantity, unitPrice, qText, pText) => {
+        const item = line({ quantity, unitPrice });
+        expect(buildInvoiceItemUpdate(item, { ...formItemFrom(item), quantity: qText, unitPrice: pText })).toBeNull();
+    });
+
+    it("abrir y guardar una línea con decimales sin cambios no envía PUT", () => {
+        const item = line({ quantity: 2.5, unitPrice: 33.33, taxes: [tax("IVA", "DEBIT", 0.055)] });
+        expect(buildInvoiceItemUpdate(item, formItemFrom(item))).toBeNull();
+    });
+
+    it("un cambio mínimo de cantidad se detecta (comparación numérica exacta)", () => {
+        const item = line({ quantity: 2.5 });
+        expect(buildInvoiceItemUpdate(item, { ...formItemFrom(item), quantity: "2,5000001" })).toMatchObject({
+            quantity: 2.5000001,
+        });
+    });
+
     it("cambiar solo mayúsculas o espacios del código no es un cambio", () => {
         const form = formItemFrom(saved);
         form.taxes[0] = { ...form.taxes[0], code: " iva " };
@@ -184,7 +261,7 @@ describe("buildInvoiceItemUpdate (CA-13.3: PUT solo si algo cambió, con la list
     });
 
     it("cambiar la cantidad envía la lista completa de impuestos", () => {
-        const form = { ...formItemFrom(saved), quantity: 3 };
+        const form = { ...formItemFrom(saved), quantity: "3" };
         expect(buildInvoiceItemUpdate(saved, form)).toEqual({
             id: "line-1",
             quantity: 3,
@@ -198,7 +275,10 @@ describe("buildInvoiceItemUpdate (CA-13.3: PUT solo si algo cambió, con la list
     });
 
     it("cambiar el precio unitario es un cambio", () => {
-        expect(buildInvoiceItemUpdate(saved, { ...formItemFrom(saved), unitPrice: 101 })).not.toBeNull();
+        expect(buildInvoiceItemUpdate(saved, { ...formItemFrom(saved), unitPrice: "101" })).not.toBeNull();
+        expect(buildInvoiceItemUpdate(saved, { ...formItemFrom(saved), unitPrice: "100,5" })).toMatchObject({
+            unitPrice: 100.5,
+        });
     });
 
     it("editar el tercer impuesto conserva los demás tal cual", () => {

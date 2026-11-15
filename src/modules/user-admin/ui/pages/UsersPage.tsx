@@ -82,7 +82,7 @@ export const UsersPage = () => {
 
     if (!allowed) {
         return (
-            <section className="p-5" data-cy="users-access-denied">
+            <section className="app-page" data-cy="users-access-denied">
                 <h1 className="mt-0">Usuarios</h1>
                 <p>Acceso denegado: necesitas el permiso para ver usuarios (users/read).</p>
             </section>
@@ -208,7 +208,7 @@ export const UsersPage = () => {
         setEditValues((current) => ({ ...current, [field]: value }));
 
     return (
-        <section className="p-5" data-cy="users-page">
+        <section className="app-page" data-cy="users-page">
             <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }} className="mb-2">
                 Usuarios
             </h1>

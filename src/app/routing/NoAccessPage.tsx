@@ -25,7 +25,7 @@ export const NoAccessPage = () => {
     }
 
     return (
-        <section className="p-5" data-cy="no-access">
+        <section className="app-page" data-cy="no-access">
             <h1 className="mt-0">Sin acceso a módulos</h1>
             <p>
                 Iniciaste sesión correctamente{email ? <> como <strong>{email}</strong></> : null}, pero tu usuario

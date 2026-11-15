@@ -9,6 +9,7 @@ import { Controller } from "react-hook-form";
 import { CatalogSelect, type CatalogOption } from "@modules/invoicing/ui/components/CatalogSelect";
 import { catalogApi } from "@modules/invoicing/infrastructure/catalog/catalogApi";
 import type { Customer, Product } from "@modules/invoicing/domain/entities/Catalog";
+import { formatEsCoDecimal } from "@shared/domain/esCoDecimal";
 
 // Búsquedas en los catálogos del tenant: el usuario ve nombres, documentos y
 // códigos; el UUID solo se conserva como valor interno del formulario.
@@ -173,7 +174,7 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                                     onChange={(id, product) => {
                                                         productField.onChange(id);
                                                         if (product && product.unitPrice > 0) {
-                                                            form.setValue(`items.${index}.unitPrice`, product.unitPrice, {
+                                                            form.setValue(`items.${index}.unitPrice`, formatEsCoDecimal(product.unitPrice), {
                                                                 shouldValidate: true,
                                                             });
                                                         }
@@ -205,10 +206,12 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                     required
                                     error={getErrorMessage(form.formState.errors, ["items", index, "quantity"])}
                                 >
+                                    {/* Texto (no type="number"): el navegador no descarta la coma decimal es-CO. */}
                                     <input
                                         id={`items.${index}.quantity`}
-                                        type="number"
-                                        min={1}
+                                        type="text"
+                                        inputMode="decimal"
+                                        autoComplete="off"
                                         className="p-inputtext p-component w-full"
                                         disabled={linesReadOnly}
                                         {...form.register(`items.${index}.quantity`)}
@@ -224,9 +227,9 @@ export const CreateInvoiceForm = (props: CreateInvoiceFormProps) => {
                                 >
                                     <input
                                         id={`items.${index}.unitPrice`}
-                                        type="number"
-                                        min={0.01}
-                                        step={0.01}
+                                        type="text"
+                                        inputMode="decimal"
+                                        autoComplete="off"
                                         className="p-inputtext p-component w-full"
                                         disabled={linesReadOnly}
                                         {...form.register(`items.${index}.unitPrice`)}

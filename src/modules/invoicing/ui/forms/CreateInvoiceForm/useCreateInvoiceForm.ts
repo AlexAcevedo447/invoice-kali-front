@@ -10,6 +10,7 @@ import { createInvoiceSchema } from "./createInvoiceForm.schema";
 import {
   buildInvoiceItemUpdate,
   createEmptyItem,
+  esCoTextToNumber,
   getCreateInvoiceDefaultValues,
   mapFormTaxesToCommand,
   mapInvoiceToCreateInvoiceFormValues,
@@ -112,8 +113,8 @@ export function useCreateInvoiceForm({
           const created = await createInvoiceItem({
             invoiceId: invoiceToEdit.id,
             itemId: item.itemId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
+            quantity: esCoTextToNumber(item.quantity),
+            unitPrice: esCoTextToNumber(item.unitPrice),
             taxes: mapFormTaxesToCommand(item.taxes),
           });
           if (!created) return;

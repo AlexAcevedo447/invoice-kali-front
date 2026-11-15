@@ -53,7 +53,12 @@ export const InvoicesTable = ({
             field: "amount",
             header: "Monto",
             sortable: true,
-            body: (row) => formatAmount(row.amount),
+            // Texto con formato visual; data-value conserva el total exacto del servidor.
+            body: (row) => (
+                <span data-cy="invoice-row-amount" data-value={row.amount}>
+                    {formatAmount(row.amount)}
+                </span>
+            ),
         },
         {
             field: "status",

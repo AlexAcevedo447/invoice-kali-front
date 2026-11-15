@@ -169,10 +169,10 @@ export const InvoicesManagementPage = () => {
 
 
     return (
-        <div className="p-5">
+        <div className="app-page">
             <Toast ref={toastRef} />
 
-            <div className="flex justify-content-between align-items-center mb-4">
+            <div className="flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
                 <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }}>
                     Gestión de Facturas
                 </h1>

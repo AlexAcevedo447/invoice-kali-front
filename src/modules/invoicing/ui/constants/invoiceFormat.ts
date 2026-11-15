@@ -1,21 +1,35 @@
 import type { InvoiceStatus as DomainInvoiceStatus } from "@modules/invoicing/domain/entities/Invoice";
 import type { InvoiceTaxKind } from "@modules/invoicing/domain/entities/InvoiceTax";
-import { shiftDecimalPoint } from "@modules/invoicing/domain/value-objects/taxRate";
+import { rateToPercent } from "@modules/invoicing/domain/value-objects/taxRate";
+import { dotDecimalToEsCo } from "@shared/domain/esCoDecimal";
 import type { InvoiceStatus } from "./invoiceStatus";
 
+const AMOUNT_FORMAT = new Intl.NumberFormat("es-CO", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+});
+
 /**
- * Formato de importes en pantalla (D4-04): muestra el valor del servidor SIN
- * redondear. El servidor no define redondeo (importe = subtotal × tarifa en
- * float64), así que el cliente no inventa uno: usa la representación decimal
- * exacta del número recibido y solo completa con ceros hasta 2 decimales
- * (238 → "$238.00"; 0.413958 → "$0.413958"). Nunca recorta decimales.
+ * Formato VISUAL de importes en pantalla: estilo es-CO con separador de miles
+ * (punto), coma decimal y exactamente 2 decimales, con prefijo "$"
+ * (238 -> "$238,00"; 3684.43 -> "$3.684,43"; -25 -> "-$25,00").
+ *
+ * Solo cambia el texto que se muestra: los valores guardados, los que envía el
+ * servidor y los cálculos no se tocan (cada importe conserva el número exacto
+ * del servidor en su atributo `data-value`).
  */
 export const formatAmount = (amount: number): string => {
-    const exact = shiftDecimalPoint(String(amount), 0);
-    const negative = exact.startsWith("-");
-    const [integer, fraction = ""] = (negative ? exact.slice(1) : exact).split(".");
-    return `${negative ? "-" : ""}$${integer}.${fraction.padEnd(2, "0")}`;
+    const text = AMOUNT_FORMAT.format(Math.abs(amount));
+    // Un importe que se muestra como 0,00 no lleva signo ("-$0,00" confunde).
+    const negative = amount < 0 && /[1-9]/.test(text);
+    return `${negative ? "-" : ""}$${text}`;
 };
+
+/**
+ * Tarifa del servidor (fracción) -> porcentaje exacto con coma decimal:
+ * 0.025 -> "2,5 %"; 0.00414 -> "0,414 %". Sin redondeo.
+ */
+export const formatRatePercent = (rate: number): string => `${dotDecimalToEsCo(rateToPercent(rate))} %`;
 
 export const TAX_KIND_LABELS: Record<InvoiceTaxKind, string> = {
     DEBIT: "Débito",

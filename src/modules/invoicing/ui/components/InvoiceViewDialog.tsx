@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { Dialog } from "primereact/dialog";
 import { useInvoicingStore, type InvoicingState } from "@app/state/invoicingStore";
 import type { Invoice } from "@modules/invoicing/domain/entities/Invoice";
-import { rateToPercent } from "@modules/invoicing/domain/value-objects/taxRate";
-import { formatAmount, mapDomainStatusToUI, TAX_KIND_LABELS } from "../constants/invoiceFormat";
+import { formatAmount, formatRatePercent, mapDomainStatusToUI, TAX_KIND_LABELS } from "../constants/invoiceFormat";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 
 interface InvoiceViewDialogProps {
@@ -76,7 +75,7 @@ export const InvoiceViewDialog = ({ invoiceId, onClose }: InvoiceViewDialogProps
 
 const InvoiceView = ({ invoice }: { invoice: Invoice }) => (
     <>
-        <dl className="grid m-0 mb-3">
+        <dl className="grid m-0 mb-3 text-break">
             <div className="col-12 md:col-6">
                 <dt className="font-medium">Cliente</dt>
                 <dd className="m-0" data-cy="invoice-view-customer">
@@ -111,7 +110,7 @@ const InvoiceView = ({ invoice }: { invoice: Invoice }) => (
                 data-line-id={line.id}
             >
                 <div className="flex flex-wrap justify-content-between gap-2 mb-2">
-                    <strong data-cy="invoice-view-line-product">
+                    <strong data-cy="invoice-view-line-product" className="text-break">
                         {lineIndex + 1}. {line.productCode} — {line.productName}
                     </strong>
                     <span>
@@ -129,37 +128,40 @@ const InvoiceView = ({ invoice }: { invoice: Invoice }) => (
                         Sin impuestos
                     </p>
                 ) : (
-                    <table className="w-full mb-2" style={{ borderCollapse: "collapse" }}>
-                        <thead>
-                            <tr className="text-left">
-                                <th>Código</th>
-                                <th>Tipo</th>
-                                <th>Tarifa</th>
-                                <th className="text-right">Importe</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {line.taxes.map((tax, taxIndex) => (
-                                <tr key={tax.id || taxIndex} data-cy="invoice-view-tax">
-                                    <td data-cy="invoice-view-tax-code">{tax.code}</td>
-                                    <td data-cy="invoice-view-tax-kind" data-value={tax.kind}>
-                                        {TAX_KIND_LABELS[tax.kind] ?? tax.kind}
-                                    </td>
-                                    <td data-cy="invoice-view-tax-rate" data-value={tax.rate}>
-                                        {rateToPercent(tax.rate)} %
-                                    </td>
-                                    <td
-                                        className="text-right"
-                                        data-cy="invoice-view-tax-amount"
-                                        data-value={tax.amount}
-                                    >
-                                        {tax.kind === "CREDIT" ? "−" : ""}
-                                        {formatAmount(tax.amount)}
-                                    </td>
+                    // La tabla se desplaza dentro de su contenedor en pantallas angostas.
+                    <div className="table-scroll mb-2" data-cy="invoice-view-taxes-scroll">
+                        <table className="w-full" style={{ borderCollapse: "collapse" }}>
+                            <thead>
+                                <tr className="text-left">
+                                    <th>Código</th>
+                                    <th>Tipo</th>
+                                    <th>Tarifa</th>
+                                    <th className="text-right">Importe</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {line.taxes.map((tax, taxIndex) => (
+                                    <tr key={tax.id || taxIndex} data-cy="invoice-view-tax">
+                                        <td data-cy="invoice-view-tax-code" className="text-break">{tax.code}</td>
+                                        <td data-cy="invoice-view-tax-kind" data-value={tax.kind}>
+                                            {TAX_KIND_LABELS[tax.kind] ?? tax.kind}
+                                        </td>
+                                        <td data-cy="invoice-view-tax-rate" data-value={tax.rate}>
+                                            {formatRatePercent(tax.rate)}
+                                        </td>
+                                        <td
+                                            className="text-right"
+                                            data-cy="invoice-view-tax-amount"
+                                            data-value={tax.amount}
+                                        >
+                                            {tax.kind === "CREDIT" ? "−" : ""}
+                                            {formatAmount(tax.amount)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
 
                 <div className="flex flex-wrap justify-content-end gap-4">

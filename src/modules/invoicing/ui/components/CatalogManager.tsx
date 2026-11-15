@@ -4,14 +4,9 @@ import { GenericTable, type TableColumn } from "@shared/ui/table/GenericTable";
 import { FormField } from "@shared/ui/forms/FormField";
 import { useGlobalToast } from "@shared/ui/GlobalToastContext";
 import type { CatalogPage } from "@modules/invoicing/domain/entities/Catalog";
+import { validateCatalogField, type CatalogFieldConfig } from "./catalogFields";
 
-export interface CatalogFieldConfig {
-    name: string;
-    label: string;
-    type: "text" | "number";
-    requiredMessage?: string;
-    min?: number;
-}
+export type { CatalogFieldConfig } from "./catalogFields";
 
 interface CatalogManagerProps<T extends { id: string }> {
     title: string;
@@ -93,11 +88,8 @@ export const CatalogManager = <T extends { id: string }>({
         event.preventDefault();
         const nextErrors: Record<string, string> = {};
         for (const field of fields) {
-            const raw = values[field.name]?.trim() ?? "";
-            if (field.requiredMessage && raw === "") nextErrors[field.name] = field.requiredMessage;
-            if (field.type === "number" && raw !== "" && (Number.isNaN(Number(raw)) || Number(raw) < (field.min ?? 0))) {
-                nextErrors[field.name] = `${field.label} debe ser un número mayor o igual a ${field.min ?? 0}`;
-            }
+            const message = validateCatalogField(field, values[field.name]);
+            if (message) nextErrors[field.name] = message;
         }
         setErrors(nextErrors);
         if (Object.keys(nextErrors).length > 0) return;
@@ -117,7 +109,7 @@ export const CatalogManager = <T extends { id: string }>({
     };
 
     return (
-        <section className="p-5" data-cy={`${cy}-page`}>
+        <section className="app-page" data-cy={`${cy}-page`}>
             <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }} className="mb-4">
                 {title}
             </h1>
@@ -136,9 +128,10 @@ export const CatalogManager = <T extends { id: string }>({
                                 <input
                                     id={`${cy}-${field.name}`}
                                     data-cy={`${cy}-${field.name}`}
-                                    type={field.type}
-                                    min={field.min}
-                                    step={field.type === "number" ? "0.01" : undefined}
+                                    // Los decimales se editan como texto (coma es-CO): el navegador no descarta la coma.
+                                    type="text"
+                                    inputMode={field.type === "decimal" ? "decimal" : undefined}
+                                    autoComplete={field.type === "decimal" ? "off" : undefined}
                                     className="p-inputtext p-component w-full"
                                     value={values[field.name] ?? ""}
                                     onChange={(e) => setValues((prev) => ({ ...prev, [field.name]: e.target.value }))}

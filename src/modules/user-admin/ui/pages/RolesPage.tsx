@@ -155,7 +155,7 @@ export const RolesPage = () => {
 
     if (!allowed) {
         return (
-            <section className="p-5" data-cy="roles-access-denied">
+            <section className="app-page" data-cy="roles-access-denied">
                 <h1 className="mt-0">Roles</h1>
                 <p>Acceso denegado: necesitas el permiso para ver roles (roles/read).</p>
             </section>
@@ -383,7 +383,7 @@ export const RolesPage = () => {
     const selectedUser = users.find((user) => String(user.id) === selectedUserId);
 
     return (
-        <section className="p-5" data-cy="roles-page">
+        <section className="app-page" data-cy="roles-page">
             <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }} className="mb-4">
                 Roles
             </h1>
@@ -501,7 +501,7 @@ export const RolesPage = () => {
                                             data-cy="user-role-item"
                                             className="flex align-items-center justify-content-between gap-2 py-2 border-bottom-1 surface-border"
                                         >
-                                            <span data-cy="user-role-name">
+                                            <span data-cy="user-role-name" className="text-break">
                                                 {roleById.get(String(roleId))?.name ?? String(roleId)}
                                             </span>
                                             <Button
@@ -632,7 +632,7 @@ export const RolesPage = () => {
                                         data-cy="role-permission-item"
                                         className="flex align-items-center justify-content-between gap-2 py-2 border-bottom-1 surface-border"
                                     >
-                                        <code data-cy="role-permission-label">
+                                        <code data-cy="role-permission-label" className="text-break">
                                             {permission ? permissionLabel(permission) : String(permissionId)}
                                         </code>
                                         {canAssign ? (

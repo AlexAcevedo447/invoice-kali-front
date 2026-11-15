@@ -79,18 +79,17 @@ export const AppLayout = () => {
 
     return (
         <>
-            <header
-                data-cy="app-header"
-                className="flex align-items-center justify-content-between px-5 py-3 border-bottom-1 surface-border surface-0"
-            >
-                <div className="flex align-items-center gap-4">
-                    <span className="font-bold text-xl">Invoice Kali</span>
+            {/* En pantallas angostas marca, empresa, enlaces y sesión pasan a otra línea
+                (flex-wrap en src/app/styles/global.css): la página no se desplaza en horizontal. */}
+            <header data-cy="app-header" className="app-header border-bottom-1 surface-border surface-0">
+                <div className="app-header__main">
+                    <span className="app-header__brand font-bold text-xl">Invoice Kali</span>
                     {tenantName ? (
-                        <span data-cy="session-tenant" className="text-color-secondary">
+                        <span data-cy="session-tenant" className="app-header__tenant text-color-secondary">
                             {tenantName}
                         </span>
                     ) : null}
-                    <nav data-cy="app-nav" className="flex gap-2">
+                    <nav data-cy="app-nav" className="app-header__nav">
                         {links.map((link) => (
                             <NavLink
                                 key={link.to}
@@ -105,9 +104,9 @@ export const AppLayout = () => {
                         ))}
                     </nav>
                 </div>
-                <div className="flex align-items-center gap-3">
+                <div className="app-header__session">
                     {email ? (
-                        <span data-cy="session-email" className="text-color-secondary text-sm">
+                        <span data-cy="session-email" className="app-header__email text-color-secondary text-sm">
                             {email}
                         </span>
                     ) : null}

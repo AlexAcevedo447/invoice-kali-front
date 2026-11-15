@@ -1,0 +1,144 @@
+/*
+ * Estilos globales de la aplicación (se cargan en src/main.tsx después de
+ * PrimeReact y PrimeFlex). Objetivo: en pantallas angostas (390 px, 768 px) la
+ * PÁGINA nunca se desplaza en horizontal; lo que no cabe (tablas) se desplaza
+ * dentro de su propio contenedor y los textos largos sin espacios se parten.
+ */
+
+/* ---------- Contenedor de cada página ---------- */
+
+.app-page {
+  padding: 2rem;
+  min-width: 0;
+}
+
+@media (max-width: 575px) {
+  .app-page {
+    padding: 1rem;
+  }
+}
+
+/* Un texto largo sin espacios (nombre, correo, código) se parte en vez de ensanchar la página. */
+.text-break {
+  overflow-wrap: anywhere;
+  word-break: normal;
+  min-width: 0;
+}
+
+/* Los controles nativos nunca exceden su contenedor (un <select> con opciones largas). */
+select,
+input,
+textarea {
+  max-width: 100%;
+}
+
+.p-inputtext {
+  min-width: 0;
+}
+
+/* ---------- Barra superior (AppLayout) ---------- */
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 1rem 2rem;
+}
+
+.app-header__main,
+.app-header__session {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  min-width: 0;
+}
+
+.app-header__main {
+  flex: 1 1 auto;
+}
+
+.app-header__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  min-width: 0;
+}
+
+.app-header__brand,
+.app-header__tenant,
+.app-header__email {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+@media (max-width: 575px) {
+  .app-header {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* ---------- Tablas ---------- */
+
+/* Tabla HTML simple (p. ej. impuestos en "Ver factura"): se desplaza dentro de su contenedor. */
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/*
+ * DataTable de PrimeReact: su .p-datatable-wrapper ya tiene overflow:auto; aquí
+ * se asegura que el componente no ensanche a su padre y que los valores largos
+ * de las celdas se partan (los encabezados conservan palabras completas y
+ * marcan el ancho mínimo de cada columna).
+ */
+.p-datatable {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.p-datatable > .p-datatable-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.p-datatable .p-datatable-tbody > tr > td,
+.table-scroll td {
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Selector de catálogo (CatalogSelect / Dropdown) ---------- */
+
+.catalog-select {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* El valor elegido se muestra completo en varias líneas, sin ensanchar el campo. */
+.catalog-select .p-dropdown-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+
+/* El panel nunca supera el ancho de la pantalla y sus opciones largas se parten. */
+.catalog-select-panel {
+  max-width: calc(100vw - 32px);
+}
+
+.catalog-select-panel .p-dropdown-item {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.catalog-select-panel .p-dropdown-filter-container {
+  min-width: 0;
+}
+
+/* ---------- Diálogos ---------- */
+
+.p-dialog .p-dialog-content {
+  overflow-x: auto;
+}

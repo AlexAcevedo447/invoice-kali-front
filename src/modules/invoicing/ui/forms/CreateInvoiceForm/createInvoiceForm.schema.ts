@@ -1,11 +1,10 @@
 import { z } from "zod";
-import { isPercentString, percentToRate } from "@modules/invoicing/domain/value-objects/taxRate";
+import { parseEsCoDecimal } from "@shared/domain/esCoDecimal";
 
 export const TAX_MESSAGES = {
   codeRequired: "El código del impuesto es obligatorio.",
   kindRequired: "Selecciona el tipo de impuesto (débito o crédito).",
   rateRequired: "La tarifa del impuesto es obligatoria.",
-  rateInvalid: "La tarifa debe ser un número con punto decimal (por ejemplo 19 o 4.14).",
   rateNegative: "La tarifa del impuesto no puede ser negativa.",
   codeRepeated: (code: string) => `El código de impuesto "${code}" está repetido en esta línea.`,
 } as const;
@@ -16,26 +15,46 @@ export const TAX_MESSAGES = {
  */
 export const taxCodeKey = (code: string): string => code.trim().toUpperCase();
 
+export const ITEM_MESSAGES = {
+  quantityRequired: "La cantidad es obligatoria.",
+  quantityRange: "Quantity must be > 0",
+  unitPriceRequired: "El precio unitario es obligatorio.",
+  unitPriceRange: "Unit price must be > 0",
+} as const;
+
+/**
+ * Campo decimal es-CO (coma decimal, sin separadores de miles). El valor se
+ * conserva como el TEXTO que escribió el usuario; los mappers lo convierten
+ * con el mismo parser, de forma exacta. Primero se informa el formato y luego
+ * el rango, para que "1.5" nunca se lea como otro número.
+ */
+const esCoDecimalText = (requiredMessage: string, rangeError: (value: number) => string | null) =>
+  z
+    .string({ error: requiredMessage })
+    .trim()
+    .superRefine((text, ctx) => {
+      if (text === "") {
+        ctx.addIssue({ code: "custom", message: requiredMessage });
+        return;
+      }
+      const parsed = parseEsCoDecimal(text);
+      if (!parsed.ok) {
+        ctx.addIssue({ code: "custom", message: parsed.error });
+        return;
+      }
+      const message = rangeError(parsed.value);
+      if (message) ctx.addIssue({ code: "custom", message });
+    });
+
 export const taxSchema = z.object({
   code: z.string().trim().min(1, TAX_MESSAGES.codeRequired),
   kind: z
     .enum(["", "DEBIT", "CREDIT"], { error: TAX_MESSAGES.kindRequired })
     // Sin predicado de tipo: el formulario admite "" (sin elegir) hasta validar.
     .refine((kind) => kind.length > 0, TAX_MESSAGES.kindRequired),
-  // Se conserva como texto (el % que escribió el usuario) para convertirlo a
-  // fracción sin redondeos ni artefactos binarios (ver taxRate.ts).
-  rate: z
-    .string({ error: TAX_MESSAGES.rateRequired })
-    .trim()
-    .superRefine((rate, ctx) => {
-      if (rate === "") {
-        ctx.addIssue({ code: "custom", message: TAX_MESSAGES.rateRequired });
-      } else if (!isPercentString(rate)) {
-        ctx.addIssue({ code: "custom", message: TAX_MESSAGES.rateInvalid });
-      } else if (percentToRate(rate) < 0) {
-        ctx.addIssue({ code: "custom", message: TAX_MESSAGES.rateNegative });
-      }
-    }),
+  // Se conserva como texto (el % que escribió el usuario, con coma decimal)
+  // para convertirlo a fracción sin redondeos ni artefactos binarios (ver taxRate.ts).
+  rate: esCoDecimalText(TAX_MESSAGES.rateRequired, (percent) => (percent < 0 ? TAX_MESSAGES.rateNegative : null)),
 });
 
 /**
@@ -62,8 +81,13 @@ export const itemSchema = z.object({
   lineId: z.string().optional(),
   // El producto se elige en el catálogo; el UUID es solo el valor interno.
   itemId: z.string().min(1, "Selecciona un producto"),
-  quantity: z.coerce.number().gt(0, "Quantity must be > 0"),
-  unitPrice: z.coerce.number().gt(0, "Unit price must be > 0"),
+  // Texto es-CO ("2,5"); los mappers lo convierten a número exacto.
+  quantity: esCoDecimalText(ITEM_MESSAGES.quantityRequired, (value) =>
+    value > 0 ? null : ITEM_MESSAGES.quantityRange,
+  ),
+  unitPrice: esCoDecimalText(ITEM_MESSAGES.unitPriceRequired, (value) =>
+    value > 0 ? null : ITEM_MESSAGES.unitPriceRange,
+  ),
   taxes: taxesSchema,
 });
 

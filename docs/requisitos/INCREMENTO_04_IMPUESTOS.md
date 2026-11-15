@@ -1,9 +1,11 @@
 # Incremento 4 — Impuestos múltiples por línea (RF-13)
 
 Estado: **implementado y probado (14 nov 2026)** en la rama `feature/impuestos` (creada desde
-`feature/usuarios`) de los cuatro repositorios. D4-04 está resuelta (se conservan las reglas del
-servidor y el cliente no redondea, tampoco al mostrar). Queda una **pregunta de negocio pendiente
-(PN-01)**: tarifa máxima y regla de redondeo, que el servidor no define y no se inventaron.
+`feature/usuarios`) de los cuatro repositorios. D4-04 está resuelta: se conservan las reglas del
+servidor y el cliente no redondea valores ni cálculos (los importes se presentan con 2 decimales
+solo como formato visual). PN-01 (sin tarifa máxima adicional ni redondeo en cálculos) es una
+**limitación aceptada** para este alcance. Ver también "Cierre de hallazgos de la evidencia
+AA3-EV02".
 
 ## Requisitos de origen (acta GA8)
 
@@ -33,7 +35,7 @@ consultar y editar**.
 | D4-01 | Se permiten líneas **sin impuestos**; se muestran como "Sin impuestos", sin inventar un IVA 0 %. | Servidor ya lo admitía. La interfaz admite 0..N impuestos; las líneas nuevas empiezan sin impuestos. |
 | D4-02 | Un código **no se repite** en la misma línea, sin distinguir mayúsculas ni espacios exteriores. Validación en cliente y servidor. Los duplicados históricos se informan, no se corrigen. | Servidor: 400 `tax code is repeated in the same item`. Cliente: error en la fila repetida (`El código de impuesto "IVA" está repetido en esta línea.`). Históricos: ver abajo. |
 | D4-03 | Códigos de **texto libre**, obligatorios y normalizados (trim + mayúsculas); el tipo DEBIT/CREDIT se elige **explícitamente**; sin catálogo nuevo. | Servidor: `kind` vacío ahora es 400 (antes DEBIT implícito). Interfaz: selector con "Selecciona el tipo" sin valor por defecto. |
-| D4-04 | Se conservan las reglas del servidor; el cliente no redondea ni en los mapeos ni al mostrar. | Ver "Precisión y cálculo". Corrección del 14 nov 2026: la vista "Ver", el listado y los precios de productos mostraban importes con `toFixed(2)` (redondeo no definido por el servidor); ahora muestran el valor exacto. Tarifa máxima y redondeo: pregunta PN-01, sin regla inventada. |
+| D4-04 | Se conservan las reglas del servidor; el cliente no redondea valores, mapeos ni cálculos. | Ver "Precisión y cálculo". Los importes se **presentan** con 2 decimales en formato es-CO solo como formato visual; API, almacenamiento, cálculos y `data-value` conservan el valor original. PN-01: limitación aceptada. |
 | D4-05 | Modificar líneas de una factura existente sigue exigiendo `invoice-items/manage`; `invoices/manage` no lo concede. | Sin ese permiso, al editar, líneas e impuestos quedan deshabilitados con una nota explicativa; cliente y vencimiento siguen editables. Crear una factura con sus líneas solo exige `invoices/manage`. |
 | D4-06 | Vista de **solo lectura** de líneas e impuestos desde el listado, con `invoices/read`. | Acción "Ver" en cada fila → diálogo con `GET /invoices/:id`: cliente, fechas, estado, líneas, impuestos y totales del servidor. |
 
@@ -62,22 +64,21 @@ Reglas del servidor (sin cambios en este incremento, salvo las validaciones de D
 
 Interfaz:
 
-- La tarifa se escribe en % con **punto decimal** y se convierte a fracción **desplazando el punto
-  decimal sobre el texto** (`"0.414"` → `0.00414`; `0.00414` → `"0.414"`), sin `toFixed` ni
-  multiplicar o dividir. Se eliminó el redondeo previo a 4 decimales.
-- Los totales mostrados son los del servidor, sin recalcular **ni redondear**: `formatAmount`
-  usa la representación decimal exacta del número recibido y solo completa ceros hasta 2
-  decimales (`238` → `$238.00`; `0.41395799999999997` → `$0.41395799999999997`). Como el servidor
-  calcula en `float64` sin redondeo, pueden verse decimales de coma flotante: es el valor real
-  guardado, no un error de la interfaz. El valor también queda en `data-value`.
-- Pruebas: Vitest `invoiceFormat.test.ts` (no recorta, conserva signo y artefactos de float) y
-  CP-E2E-011 (el texto mostrado de totales e importes es igual al número del servidor).
+- **Entrada numérica es-CO** (cantidad, precio unitario, tarifa en % y precio de producto): solo
+  dígitos y una **coma decimal**, sin separadores de miles (`1,5`, `150000`, `19,5`, `0,414`). Un
+  punto, varias comas u otros caracteres se rechazan con un mensaje claro; nunca se reinterpreta el
+  valor. Los campos son de texto (`inputMode="decimal"`) para que el navegador no descarte la coma.
+- La tarifa en % se convierte a fracción **desplazando la coma decimal sobre el texto**
+  (`"0,414"` → `0.00414`; `0.00414` → `"0,414"`), sin multiplicar, dividir ni redondear.
+- Los totales mostrados son los del servidor, sin recalcular. `formatAmount` los **presenta** con 2
+  decimales en formato es-CO (`$1.863,00` para 1862.9999999999998): es solo formato visual; el valor
+  original queda intacto en la API, el almacenamiento, los cálculos y `data-value`.
 
-**Pregunta de negocio pendiente PN-01 (no es una regla del sistema):** ¿tarifa máxima (p. ej.
-≤ 100 %), número máximo de decimales en la tarifa y redondeo de importes (p. ej. a 2 decimales por
-impuesto o por factura, y con qué método)? Hoy el servidor acepta cualquier tarifa ≥ 0 (la
-comprobación EV02 C-15c aceptó 250 %) y guarda importes sin redondear; la interfaz no añade
-límites. Si se decide una regla, debe implementarse en el servidor y reflejarse en la interfaz.
+**PN-01 — Limitación aceptada (14 nov 2026):** para este alcance se conserva la ausencia de tarifa
+máxima adicional (cualquier tarifa ≥ 0; la comprobación EV02 C-15c aceptó 250 %) y de redondeo en
+los cálculos (importes en `float64` sin redondear). No bloquea la entrega y **no acredita
+cumplimiento tributario**: definir topes y reglas de redondeo exigidos por la normativa queda fuera
+de este alcance.
 
 ## Criterios de aceptación
 
@@ -134,3 +135,15 @@ volúmenes previos intactos.
 - Las líneas de una factura no tienen orden guardado (solo los impuestos); fuera del alcance.
 - El menú actualiza sus permisos al volver a iniciar sesión, y facturación aplica cambios de
   permisos en hasta 5 s (caché de `/auth/session`), como en los incrementos anteriores.
+- PN-01 (limitación aceptada): sin tarifa máxima adicional ni redondeo en cálculos; no acredita
+  cumplimiento tributario.
+
+## Cierre de hallazgos de la evidencia AA3-EV02 (14 nov 2026)
+
+| Hallazgo | Corrección | Pruebas de regresión |
+| --- | --- | --- |
+| M-02: "1,5" en cantidad o precio quedaba como 15 sin aviso (campo numérico del navegador). | Entrada es-CO en cantidad, precio unitario, tarifa y precio de producto: campos de texto (`inputMode="decimal"`), solo dígitos y **una coma decimal**, sin separadores de miles. Punto, varias comas u otros caracteres → mensaje claro; el texto escrito o pegado se conserva tal cual, nunca se reinterpreta. Al editar se muestran con coma ("1,5", "0,414"). | Vitest `esCoDecimal` (63), esquema y mapeos; CP-E2E-012 (escritura y pegado: `1.5`, `1.234,56`, `150.000`, `1,2,3`, `$150`, `1 234`, `1e3`; `1,5`/`100,25`/`19,5` llegan exactos al servidor y se reabren igual). |
+| Presentación monetaria con artefactos de coma flotante (`$1862.9999999999998`). | `formatAmount`: formato **visual** es-CO con 2 decimales (`$1.863,00`). API, almacenamiento, cálculos y `data-value` conservan el valor original. Tarifas en la vista: "2,5 %". | Vitest `invoiceFormat` (23); CP-E2E-011 (texto = formato de 2 decimales del `data-value`); CP-E2E-012; GA10 (montos y orden por `data-value`). |
+| M-08: la contraseña mínima de 12 se medía en bytes (11 caracteres con ñ/tilde/emoji se aceptaban). | Servidor: `utf8.RuneCountInString`. Interfaz: misma política (`[...pw].length`, `\p{Lu}`, `\p{Ll}`, `\p{Nd}`, `[\p{P}\p{S}]`, sin `\p{White_Space}`) con los mismos mensajes. Contraseñas existentes sin cambios (la política no se aplica al iniciar sesión). Argon2id usa la contraseña completa; bcrypt solo verifica hashes heredados (límite efectivo de 72 bytes; 0 en desarrollo). | Go `password_policy_test.go`, `password_hasher_test.go`; Vitest `userForm.schema`; CP-INT-015 (API, incl. > 72 bytes); CP-E2E-012 (interfaz). |
+| M-03/M-06: nombres largos sin espacios desbordaban el selector; listado y menú desbordaban la página en móvil y tableta. | Hoja `src/app/styles/global.css`: cabecera y navegación con ajuste de línea, tablas con desplazamiento dentro de su contenedor, celdas y opciones con corte de palabras largas, panel del selector limitado al ancho de la pantalla. | CP-E2E-012 (390×844 y 768×1024: sin desbordamiento de página en facturas, clientes, productos, usuarios, roles y permisos; enlaces y "Cerrar sesión" dentro de la pantalla; opción y panel del selector dentro de la pantalla). |
+| PN-01 | Limitación aceptada (ver "Precisión y cálculo"). | — |

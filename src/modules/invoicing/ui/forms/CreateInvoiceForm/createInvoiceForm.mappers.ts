@@ -2,6 +2,7 @@ import type { Invoice } from "@modules/invoicing/domain/entities/Invoice";
 import type { InvoiceItem } from "@modules/invoicing/domain/entities/InvoiceItem";
 import type { InvoiceTaxKind } from "@modules/invoicing/domain/entities/InvoiceTax";
 import { percentToRate, rateToPercent } from "@modules/invoicing/domain/value-objects/taxRate";
+import { dotDecimalToEsCo, formatEsCoDecimal, parseEsCoDecimal } from "@shared/domain/esCoDecimal";
 import {
   taxCodeKey,
   type CreateInvoiceFormValues,
@@ -35,14 +36,35 @@ export const toDateTimeLocalValue = (value?: Date | string | null): string => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
+/**
+ * Texto es-CO ya validado ("2,5") → número exacto. Lanza un error si el texto
+ * no es válido (la validación del formulario lo impide antes).
+ */
+export const esCoTextToNumber = (text: string): number => {
+  const parsed = parseEsCoDecimal(text);
+  if (!parsed.ok) throw new Error(parsed.error);
+  return parsed.value;
+};
+
+/** % es-CO del formulario ("4,14") → fracción exacta para el servidor (0.0414). */
+export const percentTextToRate = (text: string): number => {
+  const parsed = parseEsCoDecimal(text);
+  if (!parsed.ok) throw new Error(parsed.error);
+  return percentToRate(parsed.canonical);
+};
+
+/** Fracción del servidor (0.0414) → % es-CO exacto para el formulario o la vista ("4,14"). */
+export const rateToPercentText = (rate: number): string => dotDecimalToEsCo(rateToPercent(rate));
+
 /** Fila de impuesto nueva: sin código, sin tipo (el usuario lo elige) y sin tarifa. */
 export const createEmptyTax = (): InvoiceFormTax => ({ code: "", kind: "", rate: "" });
 
 /** Línea nueva: empieza SIN impuestos (no se inventa un IVA por defecto). */
 export const createEmptyItem = (): InvoiceFormItem => ({
   itemId: "",
-  quantity: 1,
-  unitPrice: 0,
+  quantity: "1",
+  // "0" (no vacío): al enviar sin producto se informa "Unit price must be > 0".
+  unitPrice: "0",
   taxes: [],
 });
 
@@ -55,7 +77,8 @@ export const getCreateInvoiceDefaultValues = (): CreateInvoiceFormValues => ({
 
 /**
  * Factura guardada → formulario. Se muestran TODOS los impuestos de cada línea,
- * en el orden guardado, con la tarifa en % exacta. Una línea sin impuestos
+ * en el orden guardado, con la tarifa en % exacta. Cantidad, precio y tarifa se
+ * muestran como texto es-CO exacto (coma decimal, sin agrupar ni redondear). Una línea sin impuestos
  * queda sin impuestos (no se le inventa un "IVA 0 %").
  */
 export const mapInvoiceToCreateInvoiceFormValues = (
@@ -69,12 +92,12 @@ export const mapInvoiceToCreateInvoiceFormValues = (
       ? invoice.items.map((item) => ({
           lineId: String(item.id),
           itemId: item.itemId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
+          quantity: formatEsCoDecimal(item.quantity),
+          unitPrice: formatEsCoDecimal(item.unitPrice),
           taxes: item.taxes.map((tax) => ({
             code: tax.code,
             kind: tax.kind,
-            rate: rateToPercent(tax.rate),
+            rate: rateToPercentText(tax.rate),
           })),
         }))
       : [createEmptyItem()],
@@ -90,7 +113,7 @@ export const mapFormTaxesToCommand = (taxes: InvoiceFormTax[]): TaxCommand[] =>
     if (tax.kind !== "DEBIT" && tax.kind !== "CREDIT") {
       throw new Error("El tipo de impuesto debe ser débito o crédito.");
     }
-    return { code: tax.code.trim(), kind: tax.kind, rate: percentToRate(tax.rate) };
+    return { code: tax.code.trim(), kind: tax.kind, rate: percentTextToRate(tax.rate) };
   });
 
 /** Forma comparable de una lista de impuestos (igual que la normaliza el servidor). */
@@ -118,15 +141,18 @@ export const buildInvoiceItemUpdate = (
   item: InvoiceFormItem,
 ): { id: string; quantity: number; unitPrice: number; taxes: TaxCommand[] } | null => {
   const taxes = mapFormTaxesToCommand(item.taxes);
+  // Comparación numérica exacta: "2,50" y 2.5 son el mismo valor (no hay PUT).
+  const quantity = esCoTextToNumber(item.quantity);
+  const unitPrice = esCoTextToNumber(item.unitPrice);
   const changed =
-    before.quantity !== item.quantity ||
-    before.unitPrice !== item.unitPrice ||
+    before.quantity !== quantity ||
+    before.unitPrice !== unitPrice ||
     !sameTaxes(
       before.taxes.map((tax) => ({ code: tax.code, kind: tax.kind, rate: tax.rate })),
       taxes,
     );
   if (!changed) return null;
-  return { id: String(before.id), quantity: item.quantity, unitPrice: item.unitPrice, taxes };
+  return { id: String(before.id), quantity, unitPrice, taxes };
 };
 
 export const mapCreateInvoiceFormValuesToCreateCommand = (
@@ -137,8 +163,8 @@ export const mapCreateInvoiceFormValuesToCreateCommand = (
   dueDate: toIsoOrUndefined(values.dueDate),
   items: values.items.map((item) => ({
     itemId: item.itemId,
-    quantity: item.quantity,
-    unitPrice: item.unitPrice,
+    quantity: esCoTextToNumber(item.quantity),
+    unitPrice: esCoTextToNumber(item.unitPrice),
     taxes: mapFormTaxesToCommand(item.taxes),
   })),
 });

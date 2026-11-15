@@ -9,7 +9,11 @@
  * fracción → % → fracción devuelve exactamente el mismo número.
  */
 
-/** Porcentaje escrito por el usuario: solo dígitos y punto decimal (sin coma ni exponente). */
+/**
+ * Porcentaje en forma canónica: dígitos y punto decimal (sin coma ni exponente).
+ * El formulario acepta la coma decimal es-CO y la convierte a esta forma con
+ * parseEsCoDecimal (src/shared/domain/esCoDecimal.ts) antes de llamar a percentToRate.
+ */
 const PERCENT_PATTERN = /^-?\d+(?:\.\d+)?$/;
 
 /** Representación de String(number): admite exponente (1e-7, 1.5e+21). */

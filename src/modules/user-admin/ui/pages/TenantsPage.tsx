@@ -76,7 +76,7 @@ export const TenantsPage = () => {
 
     if (!allowed) {
         return (
-            <section className="p-5" data-cy="tenants-access-denied">
+            <section className="app-page" data-cy="tenants-access-denied">
                 <h1 className="mt-0">Empresas</h1>
                 <p>Acceso denegado: solo el administrador de la plataforma puede gestionar empresas.</p>
             </section>
@@ -220,7 +220,7 @@ export const TenantsPage = () => {
     ];
 
     return (
-        <section className="p-5" data-cy="tenants-page">
+        <section className="app-page" data-cy="tenants-page">
             <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: 700 }} className="mb-4">
                 Empresas
             </h1>
