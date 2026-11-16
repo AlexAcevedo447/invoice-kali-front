@@ -15,6 +15,9 @@ services:
       - "${FRONTEND_PROD_LOCAL_HOST_PORT:-15081}:80"
     volumes:
       - ./nginx.local-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    # nginx llega a las APIs por host.docker.internal (Docker Desktop lo trae; en Linux hace falta esto).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health >/dev/null || exit 1"]
