@@ -8,7 +8,9 @@ services:
       dockerfile: Dockerfile
       target: prod
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:18080}
+        # Rutas relativas: nginx.local-proxy.conf enruta /api a facturación o auth. Una URL
+        # absoluta (p. ej. http://localhost:18080) enviaría también facturación a auth.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/}
     ports:
       - "${FRONTEND_PROD_LOCAL_HOST_PORT:-15081}:80"
     volumes:
